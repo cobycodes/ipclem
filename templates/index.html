@@ -8,22 +8,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>Clem has captured your IP Address!</h1>
-        
+        <h1>Clem has captured your IP Address - {{ client_ip }}</h1>        
         <div class="image-container">
-            <img src="/static/clem.jpg" alt="Website Image">
+            <img src="/static/clem.jpg" alt="Mr.Clem">
         </div>
-        
         <div class="info-box">
-            <h2>Your Connection Information:</h2>
+            <h3>More Information</h3>
             <p><strong>IP Address:</strong> {{ client_ip }}</p>
             <p><strong>Port:</strong> {{ client_port }}</p>
-        </div>
-        
-        <div class="info-box">
-            <h2>Your Browser Information:</h2>
-            <p><strong>User Agent:</strong> {{ user_agent }}</p>
-        </div>
-    </div>
+	    <p><strong>Browser:</strong> {{ user_agent }}</p>
+            <p><strong>Server Host:</strong> {{ name_address }}</p>
+	    <p><strong>Server Proxy:</strong> {{ server_proxy }}</p>
+	</div>
 </body>
 </html>

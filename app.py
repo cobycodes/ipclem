@@ -16,12 +16,18 @@ def index():
     
     # Get the browser type
     user_agent = request.headers.get('User-Agent', 'Unknown')
+
+    # Get other headers
+    name_address = request.headers.get('Name-Address', 'Not provided')
+    server_proxy = request.headers.get('Server-Proxy', 'Not provided')
     
     # Render the template with the gathered information
     return render_template('index.html', 
                           client_ip=client_ip,
                           client_port=client_port,
-                          user_agent=user_agent)
+                          user_agent=user_agent,
+			  name_address=name_address,
+			  server_proxy=server_proxy)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)
