@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Information</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Clem has captured your IP Address!</h1>
+        
+        <div class="image-container">
+            <img src="/static/clem.jpg" alt="Website Image">
+        </div>
+        
+        <div class="info-box">
+            <h2>Your Connection Information:</h2>
+            <p><strong>IP Address:</strong> {{ client_ip }}</p>
+            <p><strong>Port:</strong> {{ client_port }}</p>
+        </div>
+        
+        <div class="info-box">
+            <h2>Your Browser Information:</h2>
+            <p><strong>User Agent:</strong> {{ user_agent }}</p>
+        </div>
+    </div>
+</body>
+</html>
