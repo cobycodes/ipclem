@@ -17,8 +17,11 @@
             <p><strong>IP Address:</strong> {{ client_ip }}</p>
             <p><strong>Port:</strong> {{ client_port }}</p>
 	    <p><strong>Browser:</strong> {{ user_agent }}</p>
-            <p><strong>Server Host:</strong> {{ name_address }}</p>
-	    <p><strong>Server Proxy:</strong> {{ server_proxy }}</p>
+	    <p><strong>X-Forwarded-For:</strong> {{ x_forwarded_for_full }}</p>
+	    <!--
+	    <p><strong>Server Name:</strong> {{ server_name }}</p>
+	    <p><strong>Server IP:</strong> {{ server_ip }} </p>
+	    -->
 	</div>
 </body>
 </html>
