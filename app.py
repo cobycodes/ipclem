@@ -6,18 +6,25 @@ from datetime import datetime
 import time
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] - %(message)s',
-    handlers=[
-        logging.FileHandler("access.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s [%(levelname)s] - %(message)s',
+#     handlers=[
+#         logging.FileHandler("access.log"),
+#         logging.StreamHandler()
+#     ]
+# )
+# logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+CAT = r"""
+#########
+# /\_/\ #
+#( o.o )#
+# > ^ < #
+#########
+"""
 @app.route('/')
 def index():
     # Get timestamp
@@ -49,28 +56,34 @@ def index():
     x_forwarded_for_full = request.headers.get('X-Forwarded-For', 'Not provided')
     
     # Log the access
-    logger.info(f"Access: IP={client_ip}, Port={client_port}, User-Agent={user_agent}")
+    # logger.info(f"Access: IP={client_ip}, Port={client_port}, User-Agent={user_agent}")
     
     # Gather all request headers for debugging
     all_headers = dict(request.headers)
     
-    # Render the template with the gathered information
-    return render_template('index.html', 
-                          client_ip=client_ip,
-                          client_port=client_port,
-                          user_agent=user_agent,
-                          name_address=name_address,
-                          server_proxy=server_proxy,
-                          x_forwarded_for_full=x_forwarded_for_full,
-                          server_name=server_name,
-                          server_ip=server_ip,
-                          all_headers=all_headers)
+    # return cURL or Webpage
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    if "text/plain" in request.headers.get("Accept", ""):
+        text = f"Your IP: {ip}\n{CAT}"
+        return Response(text, mimetype="text/plain")
+    else:
+        # Render the template with the gathered information
+        return render_template('index.html', 
+                              client_ip=client_ip,
+                              client_port=client_port,
+                              user_agent=user_agent,
+                              name_address=name_address,
+                              server_proxy=server_proxy,
+                              x_forwarded_for_full=x_forwarded_for_full,
+                              server_name=server_name,
+                              server_ip=server_ip,
+                              all_headers=all_headers)
 
 @app.after_request
 def after_request(response):
     # Additional logging after request is processed
     timestamp = time.time()
-    logger.info(f"Response: Status={response.status_code}, Time={timestamp}")
+    # logger.info(f"Response: Status={response.status_code}, Time={timestamp}")
     return response
 
 if __name__ == '__main__':
