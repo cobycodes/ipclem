@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPs by Clem</title>
+    <title>IP Clem</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Clem has captured your IP Address - {{ client_ip }}</h1>        
+        <h1 style="word-break: break-word; white-space: normal;">Your Public IP Address is <strong>{{ client_ip }}</strong></h1>        
         <div class="image-container">
             <img src="/static/clem.jpg" alt="Mr.Clem">
         </div>
+        <h2>Clem said so, it must be true!</h2>
         <div class="info-box">
-            <h3>More Information</h3>
+            <h3><strong>More Information</strong></h3>
+	    <hr>
             <p><strong>IP Address:</strong> {{ client_ip }}</p>
             <p><strong>Port:</strong> {{ client_port }}</p>
 	    <p><strong>Browser:</strong> {{ user_agent }}</p>

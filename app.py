@@ -86,5 +86,9 @@ def after_request(response):
     # logger.info(f"Response: Status={response.status_code}, Time={timestamp}")
     return response
 
+@app.route('/favicon.ico')
+def favicon():
+    return app.send_static_file('favicon.ico')
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8005, debug=True)
