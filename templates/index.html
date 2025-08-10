@@ -1,29 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IP Clem</title>
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IP Clem</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
-    <div class="container">
-        <h1 style="word-break: break-word; white-space: normal;">Your Public IP Address is <strong>{{ client_ip }}</strong></h1>        
-        <div class="image-container">
-            <img src="/static/clem.jpg" alt="Mr.Clem">
-        </div>
-        <h2>Clem said so, it must be true!</h2>
-        <div class="info-box">
-            <h3><strong>More Information</strong></h3>
-	    <hr>
-            <p><strong>IP Address:</strong> {{ client_ip }}</p>
-            <p><strong>Port:</strong> {{ client_port }}</p>
-	    <p><strong>Browser:</strong> {{ user_agent }}</p>
-	    <!--
-	    <p><strong>Server Name:</strong> {{ server_name }}</p>
-	    <p><strong>Server IP:</strong> {{ server_ip }} </p>
-	    -->
-	</div>
+  <div class="container">
+    <h1>Your IP Address is <strong>{{ client_ip }}</strong></h1>
+    <div class="info-box">
+      <h4>More Information</h4>
+      <hr>
+      <p><strong>Approximate Location:</strong> {{ geo.city }}, {{ geo.region }}, {{ geo.country }}</p>
+      <p><strong>ISP:</strong> {{ geo.org }}</p>
+      <hr>
+      <p>Scroll down for even <strong>MORE</strong> info!</p>
+    </div>
+  </div>
+
+  <div class="image-container">
+    <img src="/static/clem.jpg" alt="Mr.Clem">
+  </div>
+
+  <div class="map-container">
+    <div id="map"></div>
+  </div>
+
+  <div class="container">
+    <h1>Even More Information</h1>
+    <div class="info-box">
+      <p><strong>IP Address:</strong> {{ client_ip }}</p>
+      <p><strong>Port:</strong> {{ client_port }}</p>
+      <p><strong>ASN:</strong> {{ geo.asn }} -- {{ geo.as_name }} -- {{ geo.as_domain }}</p>
+      <p><strong>Approximate Location:</strong> {{ geo.city }}, {{ geo.region }}, {{ geo.country }}</p>
+      <p><strong>Timezone:</strong> {{ geo.timezone }}</p>
+      <p><strong>Coordinates:</strong> {{ geo.loc }}</p>
+      <p><strong>Browser:</strong> {{ user_agent }}</p>
+    </div>
+  </div>
+
+  <script>
+    const MAP_GEOLOC = "{{ geo.loc }}";
+    const MAP_POPUP_TEXT = "{{ geo.city }}, {{ geo.region }}";
+  </script>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='map.js') }}"></script>
+
 </body>
 </html>

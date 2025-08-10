@@ -1,6 +1,5 @@
 /* Reset and base styles */
-html,
-body {
+html, body {
   margin: 0;
   padding: 0;
   height: 100%;
@@ -15,8 +14,7 @@ body {
   padding: 0 15px;
 }
 
-h1,
-h4 {
+h1, h4 {
   word-break: break-word;
   white-space: normal;
 }
@@ -25,7 +23,7 @@ h4 {
   background: white;
   border-radius: 8px;
   padding: 15px 20px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   margin-top: 15px;
 }
 
@@ -36,27 +34,28 @@ hr {
 }
 
 .image-container {
-  max-width: 800px;
-  margin: 10px auto;
+  max-width: 600px;
+  margin: 25px auto;
   text-align: center;
 }
 
 .image-container img {
-  width: 72%;
+  width: 60%;
   height: auto;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* Map container */
 .map-container {
-  width: 80%;
-  max-width: 900px;
+  max-width: 600px;
   margin: 25px auto;
   border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 #map {
-  height: 600px;
+  height: 300px;
   width: 100%;
 }

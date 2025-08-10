@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 import os
 import socket
 import logging
+import requests
 from datetime import datetime
 import time
 
@@ -25,10 +26,18 @@ CAT = r"""
 # > ^ < #
 #########
 """
+### Hardcoded token from ipinfo.io
+IPINFO_TOKEN = "19e1487243d6cc"
+
+def get_geo(ip):
+    # Request geolocation info from ipinfo.io
+    resp = requests.get(f"https://ipinfo.io/{ip}/json?token={IPINFO_TOKEN}")
+    return resp.json()
+
 @app.route('/')
 def index():
     # Get timestamp
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Get client IP information
     if request.headers.getlist("X-Forwarded-For"):
@@ -49,6 +58,9 @@ def index():
         server_ip = socket.gethostbyname(socket.gethostname())
     except:
         server_ip = "Unknown"
+
+    # Get info from ipinfo.io
+    geo_data = get_geo(client_ip)
     
     # Get additional headers
     name_address = request.headers.get('Name-Address', 'Not provided')
@@ -68,8 +80,9 @@ def index():
         return Response(text, mimetype="text/plain")
     else:
         # Render the template with the gathered information
-        return render_template('index.html', 
+        return render_template('index.html',
                               client_ip=client_ip,
+			      geo=geo_data,
                               client_port=client_port,
                               user_agent=user_agent,
                               name_address=name_address,
