@@ -92,6 +92,10 @@ def index():
                               server_ip=server_ip,
                               all_headers=all_headers)
 
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
 @app.after_request
 def after_request(response):
     # Additional logging after request is processed

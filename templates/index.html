@@ -49,6 +49,14 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="{{ url_for('static', filename='map.js') }}"></script>
-
 </body>
+<footer>
+  <p>
+    <a href="{{ url_for('privacy') }}">
+      <img src="{{ url_for('static', filename='favicon.ico') }}" alt="favicon" class="favicon-link">
+      &copy; {{ current_year }} IP Clem - Privacy Policy
+    </a>
+  </p>
+</footer>
+
 </html>
