@@ -1,111 +1,106 @@
-from flask import Flask, render_template, request
-import os
-import socket
-import logging
-import requests
-from datetime import datetime
-import time
-
-# Configure logging
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format='%(asctime)s [%(levelname)s] - %(message)s',
-#     handlers=[
-#         logging.FileHandler("access.log"),
-#         logging.StreamHandler()
-#     ]
-# )
-# logger = logging.getLogger(__name__)
+from flask import Flask, request, render_template
+import ipaddress
+import ipinfo
 
 app = Flask(__name__)
 
-CAT = r"""
-#########
-# /\_/\ #
-#( o.o )#
-# > ^ < #
-#########
-"""
-### Hardcoded token from ipinfo.io
-IPINFO_TOKEN = "19e1487243d6cc"
+# -----------------------------
+#  SETTINGS – OFFLINE IPINFO DB
+# -----------------------------
+IPINFO_DB_PATH = "/opt/ipclem/ipinfo_lite.mmdb"
+IPINFO_TOKEN = ""  # Offline mode
 
-def get_geo(ip):
-    # Request geolocation info from ipinfo.io
-    resp = requests.get(f"https://ipinfo.io/{ip}/json?token={IPINFO_TOKEN}")
-    return resp.json()
+# Create handler for offline DB (synchronous)
+handler = ipinfo.getHandler(
+    IPINFO_TOKEN,
+    settings={
+        "cache_maxsize": 1024,
+        "country_file": IPINFO_DB_PATH,
+        "asn_file": IPINFO_DB_PATH,
+        "location_file": IPINFO_DB_PATH,
+        "ip_address_file": IPINFO_DB_PATH
+    },
+    config={
+        "ipinfo_downloads": {
+            "enabled": False,
+            "path": "/opt/ipclem"
+        }
+    }
+)
 
-@app.route('/')
-def index():
-    # Get timestamp
-    # timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    # Get client IP information
-    if request.headers.getlist("X-Forwarded-For"):
-        x_forwarded_for = request.headers.getlist("X-Forwarded-For")[0]
-        client_ip = x_forwarded_for.split(',')[0].strip()
-    else:
-        client_ip = request.remote_addr
-    
-    # Get the port of the client
-    client_port = request.environ.get('REMOTE_PORT', 'Unknown')
-    
-    # Get the browser type
-    user_agent = request.headers.get('User-Agent', 'Unknown')
-    
-    # Get server information
-    server_name = request.headers.get('Host', 'Unknown')
+# -----------------------------
+#  HELPER: GET PUBLIC IP ONLY
+# -----------------------------
+def extract_public_ip(headers, remote_addr):
+    """
+    Returns the **public** client IP, ignoring internal/private ones.
+    """
+    # Check X-Forwarded-For first (Nginx)
+    xff = headers.get("X-Forwarded-For", "")
+    if xff:
+        candidates = [ip.strip() for ip in xff.split(",")]
+        for ip in candidates:
+            try:
+                ip_obj = ipaddress.ip_address(ip)
+                if not ip_obj.is_private:
+                    return ip  # first public IP
+            except ValueError:
+                continue
+
+    # Fallback: remote_addr if it is public
     try:
-        server_ip = socket.gethostbyname(socket.gethostname())
+        ip_obj = ipaddress.ip_address(remote_addr)
+        if not ip_obj.is_private:
+            return remote_addr
     except:
-        server_ip = "Unknown"
+        pass
 
-    # Get info from ipinfo.io
-    geo_data = get_geo(client_ip)
-    
-    # Get additional headers
-    name_address = request.headers.get('Name-Address', 'Not provided')
-    server_proxy = request.headers.get('Server-Proxy', 'Not provided')
-    x_forwarded_for_full = request.headers.get('X-Forwarded-For', 'Not provided')
-    
-    # Log the access
-    # logger.info(f"Access: IP={client_ip}, Port={client_port}, User-Agent={user_agent}")
-    
-    # Gather all request headers for debugging
-    all_headers = dict(request.headers)
-    
-    # return cURL or Webpage
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
-    if "text/plain" in request.headers.get("Accept", ""):
-        text = f"Your IP: {ip}\n{CAT}"
-        return Response(text, mimetype="text/plain")
-    else:
-        # Render the template with the gathered information
-        return render_template('index.html',
-                              client_ip=client_ip,
-			      geo=geo_data,
-                              client_port=client_port,
-                              user_agent=user_agent,
-                              name_address=name_address,
-                              server_proxy=server_proxy,
-                              x_forwarded_for_full=x_forwarded_for_full,
-                              server_name=server_name,
-                              server_ip=server_ip,
-                              all_headers=all_headers)
+    # If all else fails
+    return remote_addr
+
+# -----------------------------
+#  ROUTES
+# -----------------------------
+@app.route("/")
+def index():
+    # Get the real client IP
+    client_ip = extract_public_ip(request.headers, request.remote_addr)
+
+    # Safely query offline IPinfo database
+    try:
+        details = handler.getDetails(client_ip)
+        geo = details.all
+    except Exception as e:
+        print("Geo lookup failed:", e)
+        geo = {
+            "city": "Unknown",
+            "region": "Unknown",
+            "country": "Unknown",
+            "loc": "0,0",
+            "org": "Unknown",
+            "asn": "N/A",
+            "as_name": "N/A",
+            "timezone": "Unknown"
+        }
+
+    # Browser info
+    user_agent = request.headers.get("User-Agent", "Unknown")
+    client_port = request.environ.get("REMOTE_PORT", "Unknown")
+
+    return render_template(
+        "index.html",
+        client_ip=client_ip,
+        client_port=client_port,
+        geo=geo,
+        user_agent=user_agent
+    )
 
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
 
-@app.after_request
-def after_request(response):
-    # Additional logging after request is processed
-    timestamp = time.time()
-    # logger.info(f"Response: Status={response.status_code}, Time={timestamp}")
-    return response
-
-@app.route('/favicon.ico')
-def favicon():
-    return app.send_static_file('favicon.ico')
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8005, debug=True)
+# -----------------------------
+#  MAIN
+# -----------------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
