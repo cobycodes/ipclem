@@ -70,6 +70,16 @@ def index():
     try:
         details = handler.getDetails(client_ip)
         geo = details.all
+
+        # Split geo["org"] into ASN and ISP name
+        if geo.get("org"):
+            org_parts = geo["org"].split(" ", 1)
+            geo["asn"] = org_parts[0]                     # e.g., AS396253
+            geo["isp_name"] = org_parts[1] if len(org_parts) > 1 else ""
+        else:
+            geo["asn"] = "N/A"
+            geo["isp_name"] = "Unknown"
+
     except Exception as e:
         print("Geo lookup failed:", e)
         geo = {
@@ -80,6 +90,8 @@ def index():
             "org": "Unknown",
             "asn": "N/A",
             "as_name": "N/A",
+            "as_domain": "N/A",
+            "isp_name": "Unknown",
             "timezone": "Unknown"
         }
 
