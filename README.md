@@ -1,4 +1,4 @@
-# IP Clem [https://ipclem.com]
+# [IP Clem](https://ipclem.com)
 
 **IP Clem** is a simple Flask web application that displays the visitor’s **public IP address**, geolocation, ISP info, and other details. It includes a dynamic map and a privacy notice. This project is intended **for educational purposes only**.
 
