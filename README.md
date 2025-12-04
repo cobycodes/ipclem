@@ -16,11 +16,16 @@
 
 ## Prerequisites
 
-- Python 3.9+  
-- Flask  
+- Python 3.9+   
 - [ipinfo Python library](https://pypi.org/project/ipinfo/)  
 - Virtualenv recommended  
-- NGINX Proxy Manager or NGINX (optional but recommended)  
+- NGINX Proxy Manager or NGINX (optional but recommended)
+
+### Python Libraries
+- Flask==3.1.0
+- gunicorn==23.0.0
+- ipinfo==5.3.0
+- maxminddb==3.0.0
 
 ---
 
@@ -51,7 +56,105 @@ Replace YOUR_IPINFO_TOKEN with the token from your account. Place the downloaded
 **Note:** The Lite MMDB is updated regularly. We recommend setting up a cron job to download updates automatically.
 
 
-# Configuration
+# Configuration & Deployment
+The following guide is referencing a Debian 12 (Bookworm) system.
+
+## Install the Required Packages
+```bash
+sudo apt update
+sudo apt install -y git nginx python3 python3-venv python3-pip ufw certbot python3-certbot-nginx
+```
+
+## Configure the Firewall
+```bash
+sudo ufw allow 'Nginx HTTPS'
+sudo ufw enable
+sudo ufw status verbose
+```
+
+## Git Clone the Application
+```bash
+sudo mkdir -p /var/www/ipclem
+sudo chown $USER:$USER /var/www/ipclem
+cd /var/www/ipclem
+git clone https://github.com/cobycodes/ipclem.git .
+```
+
+## Create a Service User & Group
+```bash
+sudo addgroup --system ipclem-app
+sudo adduser --system --no-create-home --shell /usr/sbin/nologin --ingroup ipclem-app ipclem-app
+sudo chown -R ipclem-app:ipclem-app /var/www/ipclem
+```
+
+## Create Python Virtual Environment & Install Libraries
+```bash
+cd /var/www/ipclem
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## Create ``systemd`` Service File
+```ini
+[Unit]
+Description=IP Location Lookup Web App (ipclem)
+After=network.target
+
+[Service]
+User=ipclem-app
+Group=ipclem-app
+WorkingDirectory=/var/www/ipclem
+Environment="PATH=/var/www/ipclem/venv/bin"
+ExecStart=/var/www/ipclem/venv/bin/gunicorn --workers 3 --bind unix:/var/www/ipclem/ipclem.sock app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start the service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now ipclem
+sudo systemctl status ipclem
+```
+
+## Configure Nginx Reverse Proxy
+Create / edit the nginx configuration at ``etc/nginx/sites-available/ipclem``:
+```nginx
+server {
+    listen 443;
+    server_name YOURDOMAIN.com;
+
+    location / {
+        proxy_pass https://unix:/var/www/ipclem/ipclem.sock;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Enable the nginx configuration:
+```bash
+sudo ln -s /etc/nginx/sites-available/ipclem /etc/nginx/sites-enabled
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+## Obtain SSL Certificate using ``certbot``
+```bash
+sudo certbot --nginx -d YOURDOMAIN.com
+```
+Follow the prompts to complete the registration for the certificate.
+
+Test auto-renewal:
+```bash
+sudo certbot renew --dry-run
+```
 
 ## Flask App
 Update ``app.py`` if your database path differs:
@@ -60,27 +163,6 @@ Update ``app.py`` if your database path differs:
 IPINFO_DB_PATH = "/opt/ipclem/ipinfo_lite.mmdb"
 IPINFO_TOKEN = ""  # Offline mode
 ```
-
-## NGINX / NGINX Proxy Manager
-Reverse proxy is recommended but not required.
-    - If using a proxy, point the backend to your Flask app (default port 5000).
-    - Ensure headers are passed correctly:
-    
-```nginx
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header Host $host;
-proxy_pass http://127.0.0.1:5000;
-```
-
-# Running the App
-
-## Development Server
-```bash
-source venv/bin/activate
-python3 app.py
-```
-Visit ``http://<your-server-ip>:5000``.
-
 
 ## Deployment Notes
 
