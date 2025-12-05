@@ -67,7 +67,7 @@ sudo apt install -y git nginx python3 python3-venv python3-pip ufw certbot pytho
 
 ## Configure the Firewall
 ```bash
-sudo ufw allow 'Nginx HTTPS'
+sudo ufw allow 'Nginx Full'
 sudo ufw enable
 sudo ufw status verbose
 ```
