@@ -126,7 +126,7 @@ Create / edit the nginx configuration at ``etc/nginx/sites-available/ipclem``:
 ```nginx
 server {
     listen 443;
-    server_name YOURDOMAIN.com;
+    server_name YOURDOMAIN.com www.YOURDOMAIN.com;
 
     location / {
         proxy_pass https://unix:/var/www/ipclem/ipclem.sock;
@@ -147,7 +147,7 @@ sudo systemctl restart nginx
 
 ## Obtain SSL Certificate using ``certbot``
 ```bash
-sudo certbot --nginx -d YOURDOMAIN.com
+sudo certbot --nginx -d YOURDOMAIN.com www.YOURDOMAIN.com
 ```
 Follow the prompts to complete the registration for the certificate.
 
