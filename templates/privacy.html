@@ -2,17 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IP Clem - Privacy Policy</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/png" href="favicon.ico">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header>
+  <div class="container">
     <h1>Privacy Policy</h1>
-  </header>
-
-  <main>
-    <section class="content-container">
+    <div class="info-box">
       <p>
         This website is a personal learning project and is provided for educational and demonstration purposes only.
       </p>
@@ -24,8 +22,18 @@
       <p>
         By using this website, you acknowledge and agree that it is offered “as-is,” without warranties of any kind, and solely as an educational exercise.
       </p>
+      <hr>
       <p><a href="{{ url_for('index') }}">← Back to IP Clem</a></p>
-    </section>
-  </main>
+    </div>
+  </div>
+  <footer>
+    <p>
+      <a href="https://github.com/cobycodes/ipclem" target="_blank" rel="noopener">GitHub - cobycodes/ipclem</a>
+    </p>
+    <p>
+      <img src="{{ url_for('static', filename='favicon.ico') }}" alt="favicon" class="favicon-link">
+      &copy; {{ current_year }} IP Clem
+    </p>
+  </footer>
 </body>
 </html>

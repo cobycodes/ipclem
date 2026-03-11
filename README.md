@@ -9,8 +9,10 @@
 - Displays **public IP address** only (filters out private/local IPs).  
 - Shows **geolocation**, **city**, **region**, **country**, **coordinates**, **timezone**, and **ISP info**.  
 - Interactive **Leaflet map** showing IP location.  
-- Privacy notice page accessible from the footer.  
-- Automatically updates the **IPinfo Lite database** for offline geolocation lookups.  
+- Landing page hero **video loop** (muted by default) with **Unmute/Mute** toggle and **click-to-pause/play**.  
+- Privacy policy page (`/privacy`) styled consistently with the landing page and accessible from the footer.  
+- Supports a **video fallback** source for better browser compatibility (`static/clem.mp4` preferred, falls back to `static/clem.mov`).  
+- Optional: use the **IPinfo Lite database** for offline geolocation lookups.  
 - Fully compatible with **NGINX Proxy Manager**, NGINX, or a combination of both.
 
 
@@ -26,6 +28,43 @@
 - gunicorn==23.0.0
 - ipinfo==5.3.0
 - maxminddb==3.0.0
+
+---
+
+## Run Locally (Windows / PowerShell)
+
+From the project root:
+
+```powershell
+cd d:\git\ipclem-test
+
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+
+$env:FLASK_APP = "app.py"
+$env:FLASK_ENV = "development"
+flask run --host 127.0.0.1 --port 5000
+```
+
+Then open:
+
+- `http://127.0.0.1:5000/`
+- `http://127.0.0.1:5000/privacy`
+
+If PowerShell blocks virtualenv activation, run:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+### Local video files
+
+Place your hero video files in `static/`:
+
+- `static/clem.mp4` (recommended for widest compatibility)
+- `static/clem.mov` (fallback)
 
 ---
 
@@ -176,7 +215,7 @@ IPINFO_TOKEN = ""  # Offline mode
 - Fully responsive and works on mobile and desktop.
 
 ## Automatic Database Updates
-- IPinfo Lite MMDB is regularly updated using a cron job.
+- IPinfo Lite MMDB can be regularly updated using a cron job.
 
 Update script: ``/opt/ipclem/update_ipinfo.sh``
 ```bash
