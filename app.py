@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template
 import ipaddress
 import ipinfo
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -104,12 +105,13 @@ def index():
         client_ip=client_ip,
         client_port=client_port,
         geo=geo,
-        user_agent=user_agent
+        user_agent=user_agent,
+        current_year=datetime.now().year,
     )
 
 @app.route("/privacy")
 def privacy():
-    return render_template("privacy.html")
+    return render_template("privacy.html", current_year=datetime.now().year)
 
 # -----------------------------
 #  MAIN

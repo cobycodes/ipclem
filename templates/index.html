@@ -22,7 +22,24 @@
   </div>
 
   <div class="image-container">
-    <img src="/static/clem.jpg" alt="Mr.Clem">
+    <div class="hero-video" aria-label="Clem video">
+      <video
+        id="clemVideo"
+        class="hero-video__media"
+        autoplay
+        loop
+        muted
+        playsinline
+        preload="metadata"
+      >
+        <source src="{{ url_for('static', filename='clem.mp4') }}" type="video/mp4">
+        <source src="{{ url_for('static', filename='clem.mov') }}" type="video/quicktime">
+      </video>
+      <button id="clemMuteBtn" class="hero-video__mute" type="button" aria-pressed="false">
+        Unmute
+      </button>
+      <div class="hero-video__hint">Click video to pause/play</div>
+    </div>
   </div>
 
   <div class="map-container">
@@ -50,17 +67,18 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="{{ url_for('static', filename='map.js') }}"></script>
+  <script src="{{ url_for('static', filename='video.js') }}"></script>
+  <footer>
+    <p>
+      <a href="https://github.com/cobycodes/ipclem" target="_blank" rel="noopener">GitHub - cobycodes/ipclem</a>
+    </p>
+    <p>
+      <a href="{{ url_for('privacy') }}">
+        <img src="{{ url_for('static', filename='favicon.ico') }}" alt="favicon" class="favicon-link">
+        &copy; {{ current_year }} IP Clem - Privacy Policy
+      </a>
+    </p>
+  </footer>
 </body>
-<footer>
-  <p>
-    <a href="https://github.com/cobycodes/ipclem" target="_blank" rel="noopener">GitHub - cobycodes/ipclem</a> </p>
-    <p \n></p>
-  <p>
-    <a href="{{ url_for('privacy') }}">
-      <img src="{{ url_for('static', filename='favicon.ico') }}" alt="favicon" class="favicon-link">
-      &copy; {{ current_year }} IP Clem - Privacy Policy
-    </a>
-  </p>
-</footer>
 
 </html>
