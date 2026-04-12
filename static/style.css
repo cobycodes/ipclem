@@ -21,7 +21,7 @@ h4 {
   white-space: normal;
 }
 
-.maxmind-callout {
+.geo-callout {
   background: #e8f4fc;
   border: 1px solid #b8d4ea;
   border-radius: 8px;
@@ -31,12 +31,12 @@ h4 {
   line-height: 1.45;
 }
 
-.maxmind-callout a {
+.geo-callout a {
   font-weight: 600;
   color: #0b5cab;
 }
 
-.maxmind-callout a:hover {
+.geo-callout a:hover {
   text-decoration: underline;
 }
 

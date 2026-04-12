@@ -31,9 +31,9 @@
 - ipinfo==5.3.0
 - maxminddb==3.0.0
 
-### MaxMind DB format (`maxminddb`)
+### IPinfo Lite offline database and MMDB (`maxminddb`)
 
-Offline geolocation reads an **MMDB** (MaxMind DB) file—the same binary database format used by [MaxMind GeoIP databases](https://www.maxmind.com/en/geoip-databases). The **`maxminddb`** Python package is the low-level reader for that format. In this app, the [ipinfo](https://pypi.org/project/ipinfo/) client loads your **IPinfo Lite** `.mmdb` file and uses those MaxMind-compatible lookups for city, region, country, coordinates, timezone, and related fields. You provide the MMDB path in `app.py` (see [Flask App](#flask-app)); obtaining and updating the Lite database file is covered in [Getting the IPinfo Lite Database](#getting-the-ipinfo-lite-database).
+Offline geolocation uses **[IPinfo](https://ipinfo.io/)**—specifically the **IPinfo Lite** database you download from IPinfo. That database is shipped as an **MMDB** file (`.mmdb`). MMDB is a binary format originally associated with MaxMind; the **`maxminddb`** package is the low-level Python reader for that format. The **[ipinfo](https://pypi.org/project/ipinfo/)** client loads your Lite `.mmdb` and performs lookups for city, region, country, coordinates, timezone, and related fields. Configure the database path in `app.py` (see [Flask App](#flask-app)); download and updates are covered in [Getting the IPinfo Lite Database](#getting-the-ipinfo-lite-database).
 
 ---
 
