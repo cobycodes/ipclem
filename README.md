@@ -25,15 +25,19 @@
 - Virtualenv recommended  
 - NGINX Proxy Manager or NGINX (optional but recommended)
 
-### Python Libraries
-- Flask==3.1.0
-- gunicorn==23.0.0
-- ipinfo==5.3.0
-- maxminddb==3.0.0
+### Python libraries (`requirements.txt`)
 
-### IPinfo Lite offline database and MMDB (`maxminddb`)
+Pinned third-party packages:
 
-Offline geolocation uses **[IPinfo](https://ipinfo.io/)**—specifically the **IPinfo Lite** database you download from IPinfo. That database is shipped as an **MMDB** file (`.mmdb`). MMDB is a binary format originally associated with MaxMind; the **`maxminddb`** package is the low-level Python reader for that format. The **[ipinfo](https://pypi.org/project/ipinfo/)** client loads your Lite `.mmdb` and performs lookups for city, region, country, coordinates, timezone, and related fields. Configure the database path in `app.py` (see [Flask App](#flask-app)); download and updates are covered in [Getting the IPinfo Lite Database](#getting-the-ipinfo-lite-database).
+- **Flask** — web app and templates  
+- **gunicorn** — WSGI server for production-style runs  
+- **ipinfo** — IPinfo API client; also used with the local **IPinfo Lite** database path configured in `app.py`
+
+The application code imports **`flask`**, **`ipinfo`**, and the standard library modules **`ipaddress`** and **`datetime`** (no separate MMDB reader package).
+
+### IPinfo Lite offline database
+
+Offline geolocation uses **[IPinfo](https://ipinfo.io/)** and the **IPinfo Lite** database file you download from IPinfo (published as `ipinfo-lite.mmdb`). Point `IPINFO_DB_PATH` in `app.py` at that file (see [Flask App](#flask-app)). The **ipinfo** library performs lookups for city, region, country, coordinates, timezone, and related fields. Download and updates are covered in [Getting the IPinfo Lite Database](#getting-the-ipinfo-lite-database).
 
 ---
 
@@ -76,7 +80,7 @@ Place your hero video files in `static/`:
 
 ## Getting the IPinfo Lite Database
 
-To use offline geolocation with IPinfo, you need the **IPinfo Lite MMDB**:
+To use offline geolocation with IPinfo, you need the **IPinfo Lite** database file:
 
 1. **Create an IPinfo account**:
 
@@ -86,19 +90,19 @@ To use offline geolocation with IPinfo, you need the **IPinfo Lite MMDB**:
 2. **Obtain a token**:
 
     - After creating your account, log in and go to your **API Tokens** page.  
-    - Copy your token — it will be used for downloading the MMDB.
+    - Copy your token — it will be used for downloading the database.
 
-3. **Download the Lite MMDB**:
+3. **Download the Lite database**:
 
     - Visit the IPinfo [database download page](https://ipinfo.io/developers/database-download)  
-    - Use the link for the Lite MMDB with your token, for example:
+    - Use the Lite database download link with your token, for example:
 
 ```bash
 curl -L "https://ipinfo.io/data/ipinfo-lite.mmdb?token=YOUR_IPINFO_TOKEN" -o /opt/ipclem/ipinfo_lite.mmdb
 ```
 Replace YOUR_IPINFO_TOKEN with the token from your account. Place the downloaded file at ``/opt/ipclem/ipinfo_lite.mmdb`` or update ``app.py`` accordingly.
 
-**Note:** The Lite MMDB is updated regularly. We recommend setting up a cron job to download updates automatically.
+**Note:** The Lite database is updated regularly. We recommend setting up a cron job to download updates automatically.
 
 
 # Configuration & Deployment
@@ -217,11 +221,11 @@ IPINFO_TOKEN = ""  # Offline mode
 
 ## Map Integration
 - Uses Leaflet.js for interactive maps.
-- Map coordinates come from the IPinfo Lite MMDB.
+- Map coordinates come from the IPinfo Lite database.
 - Fully responsive and works on mobile and desktop.
 
 ## Automatic Database Updates
-- IPinfo Lite MMDB can be regularly updated using a cron job.
+- The IPinfo Lite database can be regularly updated using a cron job.
 
 Update script: ``/opt/ipclem/update_ipinfo.sh``
 ```bash
