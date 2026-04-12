@@ -4,6 +4,9 @@ import ipinfo
 from datetime import datetime
 
 app = Flask(__name__)
+# Without this, Jinja keeps the first compiled copy of each template while DEBUG is off,
+# so HTML edits do not show until the process restarts.
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # -----------------------------
 #  SETTINGS – OFFLINE IPINFO DB
@@ -98,12 +101,10 @@ def index():
 
     # Browser info
     user_agent = request.headers.get("User-Agent", "Unknown")
-    client_port = request.environ.get("REMOTE_PORT", "Unknown")
 
     return render_template(
         "index.html",
         client_ip=client_ip,
-        client_port=client_port,
         geo=geo,
         user_agent=user_agent,
         current_year=datetime.now().year,

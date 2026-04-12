@@ -12,13 +12,15 @@
   <div class="container">
     <h1>Your IP Address is <strong>{{ client_ip }}</strong></h1>
     <div class="info-box">
-      <h4>More Information</h4>
-      <hr>
       <p><strong>Approximate Location:</strong> {{ geo.city }}, {{ geo.region }}, {{ geo.country }}</p>
       <p><strong>ISP:</strong> {{ geo.isp_name }}</p>
       <hr>
-      <p>Scroll down for even <strong>MORE</strong> info!</p>
+      <p><a href="#more-info">More Info</a></p>
     </div>
+    <p class="maxmind-callout">
+      Approximate IP location is analyzed using the <strong>MaxMind DB (MMDB)</strong> format.
+      <a href="https://www.maxmind.com/en/geoip-databases" target="_blank" rel="noopener">Learn more about MaxMind GeoIP databases</a>.
+    </p>
   </div>
 
   <div class="image-container">
@@ -47,11 +49,10 @@
   </div>
 
   <div class="container">
-    <h1>Even More Information</h1>
+    <h1>More Info</h1>
     <div class="info-box">
       <p><strong>IP Address:</strong> {{ client_ip }}</p>
       <p><strong>ISP:</strong> {{ geo.isp_name }}</p>
-      <p><strong>Port:</strong> {{ client_port }}</p>
       <p><strong>ASN:</strong> {{ geo.asn }}</p>
       <p><strong>Approximate Location:</strong> {{ geo.city }}, {{ geo.region }}, {{ geo.country }}</p>
       <p><strong>Timezone:</strong> {{ geo.timezone }}</p>
@@ -68,7 +69,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="{{ url_for('static', filename='map.js') }}"></script>
   <script src="{{ url_for('static', filename='video.js') }}"></script>
-  <footer>
+  <footer id="more-info">
     <p>
       <a href="https://github.com/cobycodes/ipclem" target="_blank" rel="noopener">GitHub - cobycodes/ipclem</a>
     </p>

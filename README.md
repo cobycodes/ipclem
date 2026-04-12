@@ -2,6 +2,8 @@
 
 **IP Clem** is a simple python-based web application that displays the visitor’s **public IP address**, geolocation, ISP info, and other details. It includes a dynamic map and a privacy notice. This project is intended **for educational purposes only**.
 
+**This project was developed with the assistance of AI (artificial intelligence) tools.**
+
 ---
 
 ## Features
@@ -28,6 +30,10 @@
 - gunicorn==23.0.0
 - ipinfo==5.3.0
 - maxminddb==3.0.0
+
+### MaxMind DB format (`maxminddb`)
+
+Offline geolocation reads an **MMDB** (MaxMind DB) file—the same binary database format used by [MaxMind GeoIP databases](https://www.maxmind.com/en/geoip-databases). The **`maxminddb`** Python package is the low-level reader for that format. In this app, the [ipinfo](https://pypi.org/project/ipinfo/) client loads your **IPinfo Lite** `.mmdb` file and uses those MaxMind-compatible lookups for city, region, country, coordinates, timezone, and related fields. You provide the MMDB path in `app.py` (see [Flask App](#flask-app)); obtaining and updating the Lite database file is covered in [Getting the IPinfo Lite Database](#getting-the-ipinfo-lite-database).
 
 ---
 
