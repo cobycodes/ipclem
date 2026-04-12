@@ -21,6 +21,29 @@ h4 {
   white-space: normal;
 }
 
+.maxmind-callout {
+  background: #e8f4fc;
+  border: 1px solid #b8d4ea;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 18px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.maxmind-callout a {
+  font-weight: 600;
+  color: #0b5cab;
+}
+
+.maxmind-callout a:hover {
+  text-decoration: underline;
+}
+
+#more-info {
+  scroll-margin-top: 12px;
+}
+
 .info-box {
   background: white;
   border-radius: 8px;
