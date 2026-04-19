@@ -111,7 +111,7 @@ def index():
     )
 
 
-@app.route("/ip")
+@app.route("/curl")
 def plain_ip():
     """Plain-text client IP for scripts and `curl` (ifconfig.io-style)."""
     client_ip = extract_public_ip(request.headers, request.remote_addr)
