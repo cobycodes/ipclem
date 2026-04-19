@@ -25,6 +25,8 @@ The `/curl` route responds with **`text/plain`**: a single line containing your 
 
 Replace the example host with your own domain when self-hosting (for example `https://yourdomain.com/curl`).
 
+**If you see `301 Moved Permanently` and HTML instead of an IP:** your request is probably going over **HTTP** (port 80). After Certbot, nginx typically redirects HTTP to HTTPS. **Always include the scheme** in production: use `https://ipclem.com/curl`, not `curl ipclem.com/curl` (without `https://`, curl usually defaults to HTTP and stops at the redirect unless you pass **`-L`**). Example: `curl -L http://ipclem.com/curl` follows the redirect to HTTPS.
+
 ### Linux or macOS (Terminal)
 
 [Bash](https://www.gnu.org/software/bash/) or [Zsh](https://zsh.org/)—`curl` is typically preinstalled. Example using the public site:
@@ -227,7 +229,7 @@ server {
     server_name YOURDOMAIN.com www.YOURDOMAIN.com;
 
     location / {
-        proxy_pass https://unix:/var/www/ipclem/ipclem.sock;
+        proxy_pass http://unix:/var/www/ipclem/ipclem.sock;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -267,6 +269,7 @@ IPINFO_TOKEN = ""  # Offline mode
 - The web server is best installed in ``/var/www/ipclem``.
 - Reverse proxy is recommended for HTTPS, caching, and header handling, but direct access works too.
 - Ensure the Flask process can read ``/opt/ipclem/ipinfo_lite.mmdb``.
+- **HTTPS and `/curl`:** Use `proxy_pass http://unix:...` (HTTP to the Gunicorn socket—not `https://unix:`). After SSL setup, HTTP clients are usually redirected to HTTPS; test with `curl https://yourdomain.com/curl` or `curl -L http://yourdomain.com/curl`.
 
 ## Map Integration
 - Uses Leaflet.js for interactive maps.
