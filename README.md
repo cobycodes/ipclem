@@ -35,6 +35,18 @@ In a typical terminal, `curl` is already available. Example using the public sit
 curl https://ipclem.com/curl
 ```
 
+If you omit **`https://`** or use plain **`http://`**, nginx may respond with a **redirect** first. **`curl` does not follow redirects by default**, so you can get a **301** and HTML instead of the IP. In that case use **`-L`** (location) so `curl` follows the redirect—for example:
+
+```bash
+curl -L ipclem.com
+```
+
+```bash
+curl -L http://ipclem.com/curl
+```
+
+(Adjust the host if you self-host.)
+
 Local development (after [running the app locally](#run-locally-windows--powershell)):
 
 ```bash
@@ -55,6 +67,8 @@ For local development:
 curl.exe http://127.0.0.1:5000/curl
 ```
 
+If you see a **301** instead of the IP, use **`curl.exe -L`**, e.g. **`curl.exe -L ipclem.com`** or **`curl.exe -L http://ipclem.com/curl`**.
+
 **Command Prompt (`cmd.exe`):** `curl` is available on Windows 10 and later:
 
 ```cmd
@@ -65,7 +79,9 @@ curl https://ipclem.com/curl
 curl http://127.0.0.1:5000/curl
 ```
 
-You should see only the IP address printed, then return to the prompt.
+If you hit a **redirect** instead of the IP (common with **HTTP** or no scheme), use **`curl.exe -L`**, e.g. **`curl.exe -L ipclem.com`** or **`curl.exe -L http://ipclem.com/curl`**.
+
+You should see only the IP address printed, then return to the prompt (after any redirects, if you used **`-L`**).
 
 
 ## Prerequisites
