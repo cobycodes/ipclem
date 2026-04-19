@@ -25,11 +25,11 @@ The `/curl` route responds with **`text/plain`**: a single line containing your 
 
 Replace the example host with your own domain when self-hosting (for example `https://yourdomain.com/curl`).
 
-**HTTP vs HTTPS:** Tools that omit the scheme (e.g. `curl yourdomain.com`) usually use **HTTP** first. With the recommended **[Option A nginx setup](#http-port-80-option-a--redirect-root-to-curl)** below, **`http://yourdomain.com/`** (bare apex) is redirected to **`https://yourdomain.com/curl`**, so a single redirect can land on plain text. Other HTTP paths (e.g. `/privacy`) still redirect to the **same** path on HTTPS. You can always use **`https://`** directly or **`curl -L`** if you need to follow generic HTTP→HTTPS redirects.
+**HTTP vs HTTPS:** If you omit the scheme (e.g. `curl yourdomain.com`), clients usually try **HTTP** first. Nginx should send HTTP to **HTTPS** (see [Nginx: two ports](#configure-nginx-reverse-proxy)). This README’s **optional** [HTTP apex redirect](#optional-http-apex-redirects-to-https-curl) makes **`http://yourdomain.com/`** go straight to **`https://yourdomain.com/curl`** (plain text) in one hop; **`https://yourdomain.com/`** still shows the full HTML site. You can always use **`https://...`** or **`curl -L`** to follow redirects.
 
 ### Linux or macOS (Terminal)
 
-[Bash](https://www.gnu.org/software/bash/) or [Zsh](https://zsh.org/)—`curl` is typically preinstalled. Example using the public site:
+In a typical terminal, `curl` is already available. Example using the public site:
 
 ```bash
 curl https://ipclem.com/curl
@@ -223,16 +223,62 @@ sudo systemctl status ipclem
 
 ## Configure Nginx Reverse Proxy
 
-Create or edit the site file at ``/etc/nginx/sites-available/ipclem``. You need **two** ``server`` blocks: **HTTP (80)** for redirects, and **HTTPS (443)** to proxy to Gunicorn. [Certbot](#obtain-ssl-certificate-using-certbot) usually injects SSL directives into the 443 block—keep those lines when merging.
+Nginx sits in front of Gunicorn. You normally edit the site file at ``/etc/nginx/sites-available/ipclem`` (enable it under ``sites-enabled``).
 
-### HTTP (port 80): Option A — redirect root to `/curl`
+### What the two ports do
 
-**Behavior:**
+| Port | Role |
+|------|------|
+| **80** (HTTP) | **Redirects only.** Browsers and `curl` may hit this first. Nothing here is sent to Flask; you return **301** to an HTTPS URL. |
+| **443** (HTTPS) | **TLS + proxy.** This is where requests are forwarded to Gunicorn with ``proxy_pass http://unix:...``. The ``http://`` here means “HTTP to the Unix socket,” not “users use HTTP in the browser.” |
 
-- ``http://YOURDOMAIN.com/`` (request path is exactly ``/``) → **301** to ``https://YOURDOMAIN.com/curl`` (helps bare-HTTP and no-path `curl` get plain text in one hop).
-- Any other HTTP path (e.g. ``/privacy``, ``/curl``, static assets) → **301** to the **same** path on HTTPS: ``https://YOURDOMAIN.com$request_uri``.
+Flask never sees cleartext HTTP in production if everyone uses HTTPS links—nginx handles TLS and sets ``X-Forwarded-*`` headers so the app knows the client IP.
 
-**HTTPS** visits to ``https://YOURDOMAIN.com/`` are **unchanged**—they still hit the Flask ``/`` route (full HTML page). Only **cleartext** HTTP on the apex path is special-cased.
+### Suggested order (so the doc matches what you run)
+
+1. Deploy the app and Gunicorn (systemd) so the Unix socket exists.
+2. Add a minimal nginx site that **proxies 443 → the socket** (or run **[Certbot](#obtain-ssl-certificate-using-certbot)** next—see below).
+3. Run **Certbot** with ``--nginx``. It usually **creates or updates** both the **:80** and **:443** blocks and inserts **``ssl_certificate``** / **``ssl_certificate_key``** on **443**. **Keep those SSL lines** when you edit the file by hand later.
+4. **Optional:** If you want the [HTTP apex → `/curl`](#optional-http-apex-redirects-to-https-curl) behavior, adjust only the **port 80** block after Certbot (see that subsection).
+5. Reload nginx: ``sudo nginx -t`` then ``sudo systemctl reload nginx``.
+
+If you run Certbot **before** step 2, ensure the **443** block includes a ``location /`` that proxies to the socket—Certbot does not add ``proxy_pass`` for you.
+
+### HTTPS (443): proxy to Gunicorn
+
+This block terminates TLS and forwards to the app. **Certbot** normally adds the ``ssl_certificate`` lines; the example shows placeholders—**do not delete** the real paths Certbot wrote.
+
+```nginx
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name YOURDOMAIN.com www.YOURDOMAIN.com;
+
+    # SSL: added by Certbot (example paths—use your real files):
+    # ssl_certificate /etc/letsencrypt/live/YOURDOMAIN.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/YOURDOMAIN.com/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        proxy_pass http://unix:/var/www/ipclem/ipclem.sock;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Use **`http://unix:`** in ``proxy_pass``, not ``https://unix:``—Gunicorn speaks HTTP on the socket.
+
+### Optional: HTTP apex redirects to HTTPS /curl
+
+**Optional.** If you skip this, a single ``return 301 https://$host$request_uri;`` on port 80 (Certbot’s default) is fine: every HTTP URL jumps to the **same path** on HTTPS.
+
+**With this snippet:** only the **exact** path **`/`** on **HTTP** goes to **`https://YOURDOMAIN.com/curl`**. Everything else on HTTP (``/privacy``, ``/curl``, static files) still redirects to the **same path** on HTTPS.
+
+**Unchanged:** **`https://YOURDOMAIN.com/`** (HTTPS, path `/`) still serves the **full Flask homepage**—this rule applies only to **cleartext** requests whose path is exactly **`/`**.
 
 ```nginx
 server {
@@ -250,37 +296,14 @@ server {
 }
 ```
 
-If Certbot already created a port **80** block with a single ``return 301 https://$host$request_uri;``, replace that block with the two ``location`` blocks above so the exact ``/`` rule applies.
+If Certbot left port 80 as one line—``return 301 https://$host$request_uri;``—replace that **server** block with the version above so ``location = /`` can run first.
 
-### HTTPS (443): proxy to Gunicorn
+Enable the site and test:
 
-```nginx
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name YOURDOMAIN.com www.YOURDOMAIN.com;
-
-    # SSL: typically added/managed by Certbot, for example:
-    # ssl_certificate /etc/letsencrypt/live/YOURDOMAIN.com/fullchain.pem;
-    # ssl_certificate_key /etc/letsencrypt/live/YOURDOMAIN.com/privkey.pem;
-    # include /etc/letsencrypt/options-ssl-nginx.conf;
-    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-    location / {
-        proxy_pass http://unix:/var/www/ipclem/ipclem.sock;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Enable the nginx configuration:
 ```bash
-sudo ln -s /etc/nginx/sites-available/ipclem /etc/nginx/sites-enabled
+sudo ln -sf /etc/nginx/sites-available/ipclem /etc/nginx/sites-enabled/ipclem
 sudo nginx -t
-sudo systemctl restart nginx
+sudo systemctl reload nginx
 ```
 
 ## Obtain SSL Certificate using ``certbot``
@@ -307,7 +330,7 @@ IPINFO_TOKEN = ""  # Offline mode
 - The web server is best installed in ``/var/www/ipclem``.
 - Reverse proxy is recommended for HTTPS, caching, and header handling, but direct access works too.
 - Ensure the Flask process can read ``/opt/ipclem/ipinfo_lite.mmdb``.
-- **HTTPS and `/curl`:** Use `proxy_pass http://unix:...` (HTTP to the Gunicorn socket—not `https://unix:`). With **[Option A](#http-port-80-option-a--redirect-root-to-curl)** on port 80, `curl http://yourdomain.com` (HTTP apex) redirects to `https://yourdomain.com/curl`; `https://yourdomain.com/` still serves the full homepage.
+- **Nginx:** See [Configure Nginx Reverse Proxy](#configure-nginx-reverse-proxy): **443** proxies to Gunicorn with ``proxy_pass http://unix:...``; **80** only redirects (optionally [HTTP apex → HTTPS `/curl`](#optional-http-apex-redirects-to-https-curl)).
 
 ## Map Integration
 - Uses Leaflet.js for interactive maps.
