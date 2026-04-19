@@ -15,7 +15,55 @@
 - Privacy policy page (`/privacy`) styled consistently with the landing page and accessible from the footer.  
 - Supports a **video fallback** source for better browser compatibility (`static/clem.mp4` preferred, falls back to `static/clem.mov`).  
 - Optional: use the **IPinfo Lite database** for offline geolocation lookups.  
-- Fully compatible with **NGINX Proxy Manager**, NGINX, or a combination of both.
+- Fully compatible with **NGINX Proxy Manager**, NGINX, or a combination of both.  
+- **Plain-text IP** endpoint at `/curl`: returns only the detected public IP (plus a newline), suitable for `curl` and scripts—similar in spirit to [ifconfig.io](https://ifconfig.io).
+
+
+## Plain-text IP (`/curl`)
+
+The `/curl` route responds with **`text/plain`**: a single line containing your **public** IP as seen by the server (same logic as the main page), followed by a newline. Use it from any terminal when you want the address without HTML or JSON.
+
+Replace the example host with your own domain when self-hosting (for example `https://yourdomain.com/curl`).
+
+### Linux or macOS (Terminal)
+
+[Bash](https://www.gnu.org/software/bash/) or [Zsh](https://zsh.org/)—`curl` is typically preinstalled. Example using the public site:
+
+```bash
+curl https://ipclem.com/curl
+```
+
+Local development (after [running the app locally](#run-locally-windows--powershell)):
+
+```bash
+curl http://127.0.0.1:5000/curl
+```
+
+### Windows (PowerShell, Command Prompt, or Windows Terminal)
+
+**PowerShell:** On Windows, `curl` is often an alias for `Invoke-WebRequest`. Call the real client explicitly:
+
+```powershell
+curl.exe https://ipclem.com/curl
+```
+
+For local development:
+
+```powershell
+curl.exe http://127.0.0.1:5000/curl
+```
+
+**Command Prompt (`cmd.exe`):** `curl` is available on Windows 10 and later:
+
+```cmd
+curl https://ipclem.com/curl
+```
+
+```cmd
+curl http://127.0.0.1:5000/curl
+```
+
+You should see only the IP address printed, then return to the prompt.
 
 
 ## Prerequisites
@@ -62,6 +110,7 @@ Then open:
 
 - `http://127.0.0.1:5000/`
 - `http://127.0.0.1:5000/privacy`
+- Plain-text IP: `http://127.0.0.1:5000/curl` (see [Plain-text IP (`/curl`)](#plain-text-ip-curl))
 
 If PowerShell blocks virtualenv activation, run:
 
