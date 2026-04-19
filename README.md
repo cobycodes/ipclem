@@ -25,7 +25,7 @@ The `/curl` route responds with **`text/plain`**: a single line containing your 
 
 Replace the example host with your own domain when self-hosting (for example `https://yourdomain.com/curl`).
 
-**HTTP vs HTTPS:** If you omit the scheme (e.g. `curl yourdomain.com`), clients usually try **HTTP** first. Nginx should send HTTP to **HTTPS** (see [Nginx: two ports](#configure-nginx-reverse-proxy)). This README’s **optional** [HTTP apex redirect](#optional-http-apex-redirects-to-https-curl) makes **`http://yourdomain.com/`** go straight to **`https://yourdomain.com/curl`** (plain text) in one hop; **`https://yourdomain.com/`** still shows the full HTML site. You can always use **`https://...`** or **`curl -L`** to follow redirects.
+**Redirects and `curl`:** A **301/302 is still a redirect**—the first HTTP response does **not** contain your Flask body; it tells the client to go somewhere else. **`curl` does not follow redirects unless you pass `-L`.** So `curl ipclem.com` (usually `http://yourdomain.com/`) stops at that redirect: you see the **301**, not the IP. To print the IP in one command you can use **`curl -L http://yourdomain.com/`** (follow to `https://…/curl` if you use [the apex redirect](#optional-http-apex-redirects-to-https-curl)), or **`curl https://yourdomain.com/curl`** (no redirect). If you want **bare `curl yourdomain.com` to print the IP with no `-L`**, you need an **HTTP 200** on port 80 (see [optional instant plain-text on HTTP `/`](#optional-http-200-plain-text-ip-on-port-80-root)); that is different from a redirect-only setup.
 
 ### Linux or macOS (Terminal)
 
@@ -274,11 +274,13 @@ Use **`http://unix:`** in ``proxy_pass``, not ``https://unix:``—Gunicorn speak
 
 ### Optional: HTTP apex redirects to HTTPS /curl
 
-**Optional.** If you skip this, a single ``return 301 https://$host$request_uri;`` on port 80 (Certbot’s default) is fine: every HTTP URL jumps to the **same path** on HTTPS.
+**Still uses HTTP→HTTPS redirects (301).** This does **not** remove the redirect: it only changes the **target** so that, **after** `curl -L`, the client ends at **`https://YOURDOMAIN.com/curl`** instead of **`https://YOURDOMAIN.com/`**.
 
-**With this snippet:** only the **exact** path **`/`** on **HTTP** goes to **`https://YOURDOMAIN.com/curl`**. Everything else on HTTP (``/privacy``, ``/curl``, static files) still redirects to the **same path** on HTTPS.
+If you skip this, Certbot’s default—``return 301 https://$host$request_uri;`` on port 80—is fine: every HTTP URL jumps to the **same path** on HTTPS.
 
-**Unchanged:** **`https://YOURDOMAIN.com/`** (HTTPS, path `/`) still serves the **full Flask homepage**—this rule applies only to **cleartext** requests whose path is exactly **`/`**.
+**With this snippet:** only the **exact** path **`/`** on **HTTP** redirects to **`https://YOURDOMAIN.com/curl`**. Other HTTP paths (``/privacy``, ``/curl``, etc.) still redirect to the **same path** on HTTPS.
+
+**Unchanged:** **`https://YOURDOMAIN.com/`** (HTTPS, path `/`) still serves the **full Flask homepage**—this applies only to **cleartext** HTTP with path **`/`**.
 
 ```nginx
 server {
@@ -297,6 +299,35 @@ server {
 ```
 
 If Certbot left port 80 as one line—``return 301 https://$host$request_uri;``—replace that **server** block with the version above so ``location = /`` can run first.
+
+**Test:** ``curl -i http://YOURDOMAIN.com/`` shows **301** and ``Location: https://…/curl``. **``curl -L http://YOURDOMAIN.com/``** follows it and prints the IP.
+
+### Optional: HTTP 200 plain-text IP on port 80 root
+
+Use this **instead of** the [301 apex redirect](#optional-http-apex-redirects-to-https-curl) for ``location = /`` on port **80**—you cannot combine both for the same path.
+
+**Goal:** ``curl yourdomain.com`` (HTTP `/`) returns **200** with the IP in the body on the **first** response—no redirect, so **no ``curl -L``** needed.
+
+Nginx answers directly with the client address it sees (**``$remote_addr``**). That matches a direct Internet client when nginx is the first hop; if you use **Cloudflare**, **another reverse proxy**, or **NGINX Proxy Manager** in front, you may need ``real_ip`` / trusted proxy settings or you will see the wrong address.
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name YOURDOMAIN.com www.YOURDOMAIN.com;
+
+    location = / {
+        default_type text/plain;
+        return 200 "$remote_addr\n";
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+```
+
+**Tradeoffs:** Response is **only over HTTP** for that URL (not TLS). Flask’s ``extract_public_ip`` / ``/curl`` logic (e.g. ``X-Forwarded-For``) is **not** used here—only nginx’s view of the peer. For a stricter match to your app, stick to **`https://…/curl`** or **`-L`**.
 
 Enable the site and test:
 
@@ -330,7 +361,7 @@ IPINFO_TOKEN = ""  # Offline mode
 - The web server is best installed in ``/var/www/ipclem``.
 - Reverse proxy is recommended for HTTPS, caching, and header handling, but direct access works too.
 - Ensure the Flask process can read ``/opt/ipclem/ipinfo_lite.mmdb``.
-- **Nginx:** See [Configure Nginx Reverse Proxy](#configure-nginx-reverse-proxy): **443** proxies to Gunicorn with ``proxy_pass http://unix:...``; **80** only redirects (optionally [HTTP apex → HTTPS `/curl`](#optional-http-apex-redirects-to-https-curl)).
+- **Nginx:** See [Configure Nginx Reverse Proxy](#configure-nginx-reverse-proxy): **443** proxies to Gunicorn with ``proxy_pass http://unix:...``; **80** is usually redirects—optional [301 apex → HTTPS `/curl`](#optional-http-apex-redirects-to-https-curl) (needs ``curl -L`` to follow) or [HTTP 200 plain-text IP on port 80](#optional-http-200-plain-text-ip-on-port-80-root) for bare ``curl`` without ``-L`` (tradeoffs apply).
 
 ## Map Integration
 - Uses Leaflet.js for interactive maps.
