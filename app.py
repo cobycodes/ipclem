@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, Response
 import ipaddress
 import ipinfo
 from datetime import datetime
@@ -109,6 +109,18 @@ def index():
         user_agent=user_agent,
         current_year=datetime.now().year,
     )
+
+
+@app.route("/ip")
+def plain_ip():
+    """Plain-text client IP for scripts and `curl` (ifconfig.io-style)."""
+    client_ip = extract_public_ip(request.headers, request.remote_addr)
+    return Response(
+        f"{client_ip}\n",
+        mimetype="text/plain",
+        headers={"Cache-Control": "no-store"},
+    )
+
 
 @app.route("/privacy")
 def privacy():
