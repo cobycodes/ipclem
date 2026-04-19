@@ -1,5 +1,7 @@
 # [IP Clem](https://ipclem.com)
 
+`clementine@server:~$ curl -L ipclem.com`
+
 **IP Clem** is a simple python-based web application that displays the visitor’s **public IP address**, geolocation, ISP info, and other details. It includes a dynamic map and a privacy notice. This project is intended **for educational purposes only**.
 
 **This project was developed with the assistance of AI (artificial intelligence) tools.**
