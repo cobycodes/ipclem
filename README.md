@@ -8,6 +8,7 @@
 
 ## Features
 
+- **New — plain-text IP at `/curl`:** This is **probably the most useful** feature for quick checks and automation: a **`text/plain`** response with only your public IP (plus a newline), like [ifconfig.io](https://ifconfig.io). In practice you will often use **`curl -L`** (follow redirects)—for example **`curl -L ipclem.com`**—because **`curl` does not follow HTTP→HTTPS redirects by default**, or use **`curl https://ipclem.com/curl`** to skip redirects. Details and nginx options are in [Plain-text IP (`/curl`)](#plain-text-ip-curl).  
 - Displays **public IP address** only (filters out private/local IPs).  
 - Shows **geolocation**, **city**, **region**, **country**, **coordinates**, **timezone**, and **ISP info**.  
 - Interactive **Leaflet map** showing IP location.  
@@ -15,8 +16,7 @@
 - Privacy policy page (`/privacy`) styled consistently with the landing page and accessible from the footer.  
 - Supports a **video fallback** source for better browser compatibility (`static/clem.mp4` preferred, falls back to `static/clem.mov`).  
 - Optional: use the **IPinfo Lite database** for offline geolocation lookups.  
-- Fully compatible with **NGINX Proxy Manager**, NGINX, or a combination of both.  
-- **Plain-text IP** endpoint at `/curl`: returns only the detected public IP (plus a newline), suitable for `curl` and scripts—similar in spirit to [ifconfig.io](https://ifconfig.io).
+- Fully compatible with **NGINX Proxy Manager**, NGINX, or a combination of both.
 
 
 ## Plain-text IP (`/curl`)
