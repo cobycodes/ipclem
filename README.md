@@ -25,7 +25,7 @@ The `/curl` route responds with **`text/plain`**: a single line containing your 
 
 Replace the example host with your own domain when self-hosting (for example `https://yourdomain.com/curl`).
 
-**If you see `301 Moved Permanently` and HTML instead of an IP:** your request is probably going over **HTTP** (port 80). After Certbot, nginx typically redirects HTTP to HTTPS. **Always include the scheme** in production: use `https://ipclem.com/curl`, not `curl ipclem.com/curl` (without `https://`, curl usually defaults to HTTP and stops at the redirect unless you pass **`-L`**). Example: `curl -L http://ipclem.com/curl` follows the redirect to HTTPS.
+**HTTP vs HTTPS:** Tools that omit the scheme (e.g. `curl yourdomain.com`) usually use **HTTP** first. With the recommended **[Option A nginx setup](#http-port-80-option-a--redirect-root-to-curl)** below, **`http://yourdomain.com/`** (bare apex) is redirected to **`https://yourdomain.com/curl`**, so a single redirect can land on plain text. Other HTTP paths (e.g. `/privacy`) still redirect to the **same** path on HTTPS. You can always use **`https://`** directly or **`curl -L`** if you need to follow generic HTTP→HTTPS redirects.
 
 ### Linux or macOS (Terminal)
 
@@ -222,11 +222,49 @@ sudo systemctl status ipclem
 ```
 
 ## Configure Nginx Reverse Proxy
-Create / edit the nginx configuration at ``etc/nginx/sites-available/ipclem``:
+
+Create or edit the site file at ``/etc/nginx/sites-available/ipclem``. You need **two** ``server`` blocks: **HTTP (80)** for redirects, and **HTTPS (443)** to proxy to Gunicorn. [Certbot](#obtain-ssl-certificate-using-certbot) usually injects SSL directives into the 443 block—keep those lines when merging.
+
+### HTTP (port 80): Option A — redirect root to `/curl`
+
+**Behavior:**
+
+- ``http://YOURDOMAIN.com/`` (request path is exactly ``/``) → **301** to ``https://YOURDOMAIN.com/curl`` (helps bare-HTTP and no-path `curl` get plain text in one hop).
+- Any other HTTP path (e.g. ``/privacy``, ``/curl``, static assets) → **301** to the **same** path on HTTPS: ``https://YOURDOMAIN.com$request_uri``.
+
+**HTTPS** visits to ``https://YOURDOMAIN.com/`` are **unchanged**—they still hit the Flask ``/`` route (full HTML page). Only **cleartext** HTTP on the apex path is special-cased.
+
 ```nginx
 server {
-    listen 443;
+    listen 80;
+    listen [::]:80;
     server_name YOURDOMAIN.com www.YOURDOMAIN.com;
+
+    location = / {
+        return 301 https://$host/curl;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+```
+
+If Certbot already created a port **80** block with a single ``return 301 https://$host$request_uri;``, replace that block with the two ``location`` blocks above so the exact ``/`` rule applies.
+
+### HTTPS (443): proxy to Gunicorn
+
+```nginx
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name YOURDOMAIN.com www.YOURDOMAIN.com;
+
+    # SSL: typically added/managed by Certbot, for example:
+    # ssl_certificate /etc/letsencrypt/live/YOURDOMAIN.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/YOURDOMAIN.com/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     location / {
         proxy_pass http://unix:/var/www/ipclem/ipclem.sock;
@@ -269,7 +307,7 @@ IPINFO_TOKEN = ""  # Offline mode
 - The web server is best installed in ``/var/www/ipclem``.
 - Reverse proxy is recommended for HTTPS, caching, and header handling, but direct access works too.
 - Ensure the Flask process can read ``/opt/ipclem/ipinfo_lite.mmdb``.
-- **HTTPS and `/curl`:** Use `proxy_pass http://unix:...` (HTTP to the Gunicorn socket—not `https://unix:`). After SSL setup, HTTP clients are usually redirected to HTTPS; test with `curl https://yourdomain.com/curl` or `curl -L http://yourdomain.com/curl`.
+- **HTTPS and `/curl`:** Use `proxy_pass http://unix:...` (HTTP to the Gunicorn socket—not `https://unix:`). With **[Option A](#http-port-80-option-a--redirect-root-to-curl)** on port 80, `curl http://yourdomain.com` (HTTP apex) redirects to `https://yourdomain.com/curl`; `https://yourdomain.com/` still serves the full homepage.
 
 ## Map Integration
 - Uses Leaflet.js for interactive maps.
