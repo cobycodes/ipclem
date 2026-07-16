@@ -2,7 +2,7 @@
 
 `clementine@server:~$ curl -L ipclem.com`
 
-**IP Clem** is a simple python-based web application that displays the visitor’s **public IP address**, geolocation, ISP info, and other details. It includes a dynamic map and a privacy notice. This project is intended **for educational purposes only**.
+**IP Clem** is a simple Python web app that shows a visitor’s **public IP address**, approximate geolocation, ISP info, and related details. It includes an interactive map, a rolling photo/video slideshow, light/dark theming, and a privacy notice. This project is intended **for educational purposes only**.
 
 **This project was developed with the assistance of AI (artificial intelligence) tools.**
 
@@ -10,16 +10,18 @@
 
 ## Features
 
-- **New — plain-text IP at `/curl`:** This is **probably the most useful** feature for quick checks and automation: a **`text/plain`** response with only your public IP (plus a newline), like [ifconfig.io](https://ifconfig.io). In practice you will often use **`curl -L`** (follow redirects)—for example **`curl -L ipclem.com`**—because **`curl` does not follow HTTP→HTTPS redirects by default**, or use **`curl https://ipclem.com/curl`** to skip redirects. Details and nginx options are in [Plain-text IP (`/curl`)](#plain-text-ip-curl).  
-- Displays **public IP address** only (filters out private/local IPs).  
-- Shows **geolocation**, **city**, **region**, **country**, **coordinates**, **timezone**, and **ISP info**.  
-- Interactive **Leaflet map** showing IP location.  
-- Landing page hero **video loop** (muted by default) with **Unmute/Mute** toggle and **click-to-pause/play**.  
-- Privacy policy page (`/privacy`) styled consistently with the landing page and accessible from the footer.  
-- Supports a **video fallback** source for better browser compatibility (`static/clem.mp4` preferred, falls back to `static/clem.mov`).  
-- Optional: use the **IPinfo Lite database** for offline geolocation lookups.  
-- Fully compatible with **NGINX Proxy Manager**, NGINX, or a combination of both.
+- **Plain-text IP at `/curl`:** A **`text/plain`** response with only your public IP (plus a newline), like [ifconfig.io](https://ifconfig.io). Prefer **`curl https://ipclem.com/curl`**, or **`curl -L ipclem.com`** when HTTP redirects are involved. Details and nginx options are in [Plain-text IP (`/curl`)](#plain-text-ip-curl).
+- Large, clear display of the visitor’s **public IP** (private/local addresses filtered out).
+- Shows **approximate location** (city, region, country), **coordinates**, **timezone**, and **ISP / ASN** info when available from the offline database.
+- Interactive **[Leaflet](https://leafletjs.com/)** map of the approximate IP location.
+- **Rolling slideshow** of photos and videos from `static/slideshow/` (auto-discovered, shuffled each page load). Click a tile to snap it to center; left/right arrows for quick browsing; auto-scroll resumes after a short pause. Videos start muted with a per-video mute control (only one unmuted at a time).
+- **Light / dark mode** that follows the device theme by default, with a header toggle that remembers a manual choice.
+- Sticky **full-width top bar** (Facebook-style): brand on the left edge, centered links (GitHub, IPinfo, Leaflet), theme switch on the right edge; page content stays in a shared max-width column.
+- Privacy policy page (`/privacy`) with matching styling; link in the footer.
+- Offline geolocation via the **[IPinfo](https://ipinfo.io/)** Lite MMDB (path configured in `app.py`).
+- Compatible with **NGINX**, **NGINX Proxy Manager**, or similar reverse proxies.
 
+---
 
 ## Plain-text IP (`/curl`)
 
@@ -83,29 +85,30 @@ curl http://127.0.0.1:5000/curl
 
 If you hit a **redirect** instead of the IP (common with **HTTP** or no scheme), use **`curl.exe -L`**, e.g. **`curl.exe -L ipclem.com`** or **`curl.exe -L http://ipclem.com/curl`**.
 
-You should see only the IP address printed, then return to the prompt (after any redirects, if you used **`-L`**).
+You should see only the IP printed, then return to the prompt (after any redirects, if you used **`-L`**).
 
+---
 
 ## Prerequisites
 
-- Python 3.9+   
-- [ipinfo Python library](https://pypi.org/project/ipinfo/)  
-- Virtualenv recommended  
+- Python 3.9+
+- [ipinfo Python library](https://pypi.org/project/ipinfo/)
+- Virtualenv recommended
 - NGINX Proxy Manager or NGINX (optional but recommended)
 
 ### Python libraries (`requirements.txt`)
 
 Pinned third-party packages:
 
-- **Flask** — web app and templates  
-- **gunicorn** — WSGI server for production-style runs  
-- **ipinfo** — IPinfo API client; also used with the local **IPinfo Lite** database path configured in `app.py`
+- **Flask** — web app and templates
+- **gunicorn** — WSGI server for production-style runs
+- **ipinfo** — IPinfo client; used with the local **IPinfo Lite** database path configured in `app.py`
 
-The application code imports **`flask`**, **`ipinfo`**, and the standard library modules **`ipaddress`** and **`datetime`** (no separate MMDB reader package).
+The application code imports **`flask`**, **`ipinfo`**, and the standard library modules **`ipaddress`**, **`datetime`**, **`pathlib`**, and **`random`**.
 
 ### IPinfo Lite offline database
 
-Offline geolocation uses **[IPinfo](https://ipinfo.io/)** and the **IPinfo Lite** database file you download from IPinfo (published as `ipinfo-lite.mmdb`). Point `IPINFO_DB_PATH` in `app.py` at that file (see [Flask App](#flask-app)). The **ipinfo** library performs lookups for city, region, country, coordinates, timezone, and related fields. Download and updates are covered in [Getting the IPinfo Lite Database](#getting-the-ipinfo-lite-database).
+Offline geolocation uses **[IPinfo](https://ipinfo.io/)** and the **IPinfo Lite** database file you download from IPinfo (published as `ipinfo-lite.mmdb`). Point `IPINFO_DB_PATH` in `app.py` at that file (see [Flask App](#flask-app)). Lookups may include country/ASN and, depending on the file/build you use, city, region, coordinates, timezone, and related fields. Download and updates are covered in [Getting the IPinfo Lite Database](#getting-the-ipinfo-lite-database).
 
 ---
 
@@ -126,6 +129,12 @@ $env:FLASK_ENV = "development"
 flask run --host 127.0.0.1 --port 5000
 ```
 
+Or:
+
+```powershell
+python app.py
+```
+
 Then open:
 
 - `http://127.0.0.1:5000/`
@@ -138,12 +147,23 @@ If PowerShell blocks virtualenv activation, run:
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-### Local video files
+### Slideshow media
 
-Place your hero video files in `static/`:
+Drop image and video files into **`static/slideshow/`**. On each homepage load the app:
 
-- `static/clem.mp4` (recommended for widest compatibility)
-- `static/clem.mov` (fallback)
+1. Scans that folder for supported images (`.jpg`, `.jpeg`, `.png`, `.webp`, …) and videos (`.mp4`, `.webm`, `.mov`, …)
+2. Groups same-name video formats into one slide (e.g. `clip.mp4` + `clip.mov`)
+3. Shuffles the full set into a random order
+
+**Prefer `.mp4` (H.264)** for browser playback. `.mov` (especially iPhone HEVC) often will not play in Chrome/Firefox/Edge—convert with ffmpeg if needed:
+
+```powershell
+ffmpeg -i input.MOV -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac output.mp4
+```
+
+Compress large photos when you can; big media slows first load.
+
+Brand assets for the header live under `static/brand/` (IPinfo pin, Leaflet leaf).
 
 ---
 
@@ -153,17 +173,17 @@ To use offline geolocation with IPinfo, you need the **IPinfo Lite** database fi
 
 1. **Create an IPinfo account**:
 
-    - Go to [https://ipinfo.io/signup](https://ipinfo.io/signup)  
+    - Go to [https://ipinfo.io/signup](https://ipinfo.io/signup)
     - Sign up for a free account. The free plan includes access to the Lite database.
 
 2. **Obtain a token**:
 
-    - After creating your account, log in and go to your **API Tokens** page.  
+    - After creating your account, log in and go to your **API Tokens** page.
     - Copy your token — it will be used for downloading the database.
 
 3. **Download the Lite database**:
 
-    - Visit the IPinfo [database download page](https://ipinfo.io/developers/database-download)  
+    - Visit the IPinfo [database download page](https://ipinfo.io/developers/database-download)
     - Use the Lite database download link with your token, for example:
 
 ```bash
@@ -425,11 +445,12 @@ IPINFO_TOKEN = ""  # Offline mode
 - The web server is best installed in ``/var/www/ipclem``.
 - Reverse proxy is recommended for HTTPS, caching, and header handling, but direct access works too.
 - Ensure the Flask process can read ``/opt/ipclem/ipinfo_lite.mmdb``.
+- Ensure ``static/slideshow/`` is present on the server (and large media is deployed—git clone includes it if you commit those files).
 - **Nginx:** See [Configure Nginx Reverse Proxy](#configure-nginx-reverse-proxy): **443** proxies to Gunicorn with ``proxy_pass http://unix:...``; **80** is usually redirects—optional [301 apex → HTTPS `/curl`](#optional-http-apex-redirects-to-https-curl), optional [proxy HTTP /curl on port 80](#optional-proxy-http-curl-on-port-80-for-plain-curl) so ``curl http://…/curl`` returns the IP without ``-L``, or [HTTP 200 plain-text IP on port 80](#optional-http-200-plain-text-ip-on-port-80-root) for the apex only (tradeoffs apply).
 
 ## Map Integration
 - Uses Leaflet.js for interactive maps.
-- Map coordinates come from the IPinfo Lite database.
+- Map coordinates come from the IPinfo database lookup (`loc`).
 - Fully responsive and works on mobile and desktop.
 
 ## Automatic Database Updates
@@ -471,7 +492,7 @@ Add:
 - No Flask restart is needed as the DB is read on each request.
 
 # Privacy & Disclaimer
-- No IP data is stored by the server.
+- No IP data is stored by the server (theme preference may be stored in the browser via ``localStorage`` only).
 - This website is for educational purposes only.
 - Information may not be accurate.
 - Privacy notice is accessible via the footer link on all pages.
