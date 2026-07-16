@@ -1,7 +1,9 @@
-from flask import Flask, request, render_template, Response
+from flask import Flask, request, render_template, Response, url_for
 import ipaddress
 import ipinfo
+import random
 from datetime import datetime
+from pathlib import Path
 
 app = Flask(__name__)
 # Without this, Jinja keeps the first compiled copy of each template while DEBUG is off,
@@ -13,6 +15,73 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 # -----------------------------
 IPINFO_DB_PATH = "/opt/ipclem/ipinfo_lite.mmdb"
 IPINFO_TOKEN = ""  # Offline mode
+
+SLIDESHOW_DIR = Path(app.root_path) / "static" / "slideshow"
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".bmp"}
+VIDEO_EXTS = {".mp4", ".webm", ".mov", ".m4v", ".ogv"}
+VIDEO_MIME = {
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mov": "video/quicktime",
+    ".m4v": "video/mp4",
+    ".ogv": "video/ogg",
+}
+
+
+def load_slideshow_items():
+    """
+    Build slideshow entries from every image/video in static/slideshow/.
+    Videos that share a filename stem (e.g. clem.mp4 + clem.mov) become one
+    slide with multiple <source> options; everything else is its own slide.
+    """
+    if not SLIDESHOW_DIR.is_dir():
+        return []
+
+    files = sorted(
+        (p for p in SLIDESHOW_DIR.iterdir() if p.is_file()),
+        key=lambda p: p.name.lower(),
+    )
+    slides = []
+    seen_video_stems = set()
+
+    for path in files:
+        ext = path.suffix.lower()
+        if ext in IMAGE_EXTS:
+            slides.append(
+                {
+                    "type": "image",
+                    "src": url_for("static", filename=f"slideshow/{path.name}"),
+                }
+            )
+        elif ext in VIDEO_EXTS:
+            stem = path.stem.lower()
+            if stem in seen_video_stems:
+                continue
+            seen_video_stems.add(stem)
+
+            candidates = [
+                p
+                for p in files
+                if p.stem.lower() == stem and p.suffix.lower() in VIDEO_EXTS
+            ]
+            # Prefer mp4 first for broadest browser support
+            candidates.sort(
+                key=lambda p: (0 if p.suffix.lower() == ".mp4" else 1, p.name.lower())
+            )
+            sources = [
+                {
+                    "src": url_for("static", filename=f"slideshow/{c.name}"),
+                    "type": VIDEO_MIME.get(
+                        c.suffix.lower(), f"video/{c.suffix.lower().lstrip('.')}"
+                    ),
+                }
+                for c in candidates
+            ]
+            slides.append({"type": "video", "sources": sources})
+
+    random.shuffle(slides)
+    return slides
+
 
 # Create handler for offline DB (synchronous)
 handler = ipinfo.getHandler(
@@ -84,6 +153,9 @@ def index():
             geo["asn"] = "N/A"
             geo["isp_name"] = "Unknown"
 
+        geo["timezone"] = geo.get("timezone") or "Unknown"
+        geo["loc"] = geo.get("loc") or "Unknown"
+
     except Exception as e:
         print("Geo lookup failed:", e)
         geo = {
@@ -96,7 +168,7 @@ def index():
             "as_name": "N/A",
             "as_domain": "N/A",
             "isp_name": "Unknown",
-            "timezone": "Unknown"
+            "timezone": "Unknown",
         }
 
     # Browser info
@@ -108,6 +180,7 @@ def index():
         geo=geo,
         user_agent=user_agent,
         current_year=datetime.now().year,
+        slideshow_items=load_slideshow_items(),
     )
 
 
