@@ -26,7 +26,6 @@
     const btn = document.getElementById("themeToggle");
     if (!btn) return;
     const isLight = theme === "light";
-    btn.setAttribute("aria-checked", isLight ? "true" : "false");
     btn.setAttribute(
       "aria-label",
       isLight ? "Light mode on. Switch to dark mode." : "Dark mode on. Switch to light mode."

@@ -27,6 +27,16 @@
     '<path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>' +
     "</svg>";
 
+  const ICON_PAUSE =
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M7 5h4v14H7zM13 5h4v14h-4z"/>' +
+    "</svg>";
+
+  const ICON_PLAY =
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M8 5v14l11-7z"/>' +
+    "</svg>";
+
   window.addEventListener("DOMContentLoaded", () => {
     const root = document.getElementById("clemSlideshow");
     const track = root && root.querySelector(".hero-slideshow__track");
@@ -41,6 +51,11 @@
     const videoEls = [];
     /** @type {string|null} id of the one video allowed to play sound; null = all muted */
     let activeVideoId = null;
+    let modal = null;
+    let modalVideo = null;
+    let modalVideoId = null;
+    let modalMuteBtn = null;
+    let modalTrigger = null;
 
     function videoIdForItem(item) {
       const primary = (item.sources && item.sources[0] && item.sources[0].src) || "";
@@ -60,6 +75,14 @@
         btn.setAttribute("aria-pressed", isActive ? "true" : "false");
         btn.classList.toggle("is-unmuted", isActive);
       });
+
+      if (modalMuteBtn) {
+        const isActive =
+          modalVideoId !== null && activeVideoId === modalVideoId;
+        modalMuteBtn.innerHTML = isActive ? ICON_UNMUTED : ICON_MUTED;
+        modalMuteBtn.setAttribute("aria-label", isActive ? "Mute video" : "Unmute video");
+        modalMuteBtn.setAttribute("aria-pressed", isActive ? "true" : "false");
+      }
     }
 
     function applyVideoAudio() {
@@ -69,8 +92,14 @@
         const isActive =
           activeVideoId !== null && video.dataset.videoId === activeVideoId;
         const inSpotlight = !!(slide && slide.classList.contains("is-spotlight"));
-        video.muted = !(isActive && inSpotlight);
+        video.muted = !!modal || !(isActive && inSpotlight);
       });
+
+      if (modalVideo) {
+        modalVideo.muted = !(
+          modalVideoId !== null && activeVideoId === modalVideoId
+        );
+      }
     }
 
     function toggleVideoMute(videoId) {
@@ -91,6 +120,7 @@
       slide.tabIndex = 0;
 
       const baseIndex = index % items.length;
+      slide.dataset.itemIndex = String(baseIndex);
 
       if (item.type === "video") {
         const videoId = videoIdForItem(item);
@@ -156,7 +186,8 @@
     syncMuteUi();
     applyVideoAudio();
 
-    let paused = reducedMotion;
+    let userPaused = reducedMotion;
+    let paused = userPaused;
     let offset = 0;
     let loopWidth = 0;
     let rafId = null;
@@ -231,7 +262,7 @@
 
     function scheduleResume() {
       clearTimeout(resumeTimer);
-      if (reducedMotion) return;
+      if (reducedMotion || userPaused || modal) return;
       resumeTimer = setTimeout(() => {
         paused = false;
         lastTs = 0;
@@ -264,8 +295,9 @@
     }
 
     function onSlideActivate(slide) {
-      if (snapping) return;
-      snapSlideToCenter(slide);
+      const itemIndex = Number(slide.dataset.itemIndex);
+      if (!Number.isInteger(itemIndex) || !items[itemIndex]) return;
+      openModal(items[itemIndex], slide);
     }
 
     function tick(ts) {
@@ -363,8 +395,126 @@
       return btn;
     }
 
+    function updatePauseButton(button) {
+      button.innerHTML = userPaused ? ICON_PLAY : ICON_PAUSE;
+      button.setAttribute(
+        "aria-label",
+        userPaused ? "Play slideshow" : "Pause slideshow"
+      );
+      button.setAttribute("aria-pressed", userPaused ? "true" : "false");
+      button.title = userPaused ? "Play slideshow" : "Pause slideshow";
+    }
+
+    function createPauseButton() {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "hero-slideshow__pause";
+      button.setAttribute("aria-controls", root.id);
+      updatePauseButton(button);
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        userPaused = !userPaused;
+        paused = userPaused;
+        snapping = false;
+        clearTimeout(resumeTimer);
+        lastTs = 0;
+        updatePauseButton(button);
+      });
+      root.insertAdjacentElement("afterend", button);
+    }
+
+    function closeModal() {
+      if (!modal) return;
+      const trigger = modalTrigger;
+      modal.remove();
+      modal = null;
+      modalVideo = null;
+      modalVideoId = null;
+      modalMuteBtn = null;
+      modalTrigger = null;
+      document.body.classList.remove("slideshow-modal-open");
+      paused = userPaused;
+      lastTs = 0;
+      syncMuteUi();
+      applyVideoAudio();
+      if (trigger) trigger.focus();
+    }
+
+    function openModal(item, trigger) {
+      if (modal) closeModal();
+      paused = true;
+      clearTimeout(resumeTimer);
+      modalTrigger = trigger;
+
+      modal = document.createElement("div");
+      modal.className = "slideshow-modal";
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.setAttribute(
+        "aria-label",
+        item.type === "video" ? "Clementine video" : "Clementine photo"
+      );
+
+      const mediaWrap = document.createElement("div");
+      mediaWrap.className = "slideshow-modal__media-wrap";
+      modal.appendChild(mediaWrap);
+
+      if (item.type === "video") {
+        modalVideoId = videoIdForItem(item);
+        modalVideo = document.createElement("video");
+        modalVideo.className = "slideshow-modal__media";
+        modalVideo.loop = true;
+        modalVideo.playsInline = true;
+        modalVideo.autoplay = true;
+        modalVideo.muted = true;
+        (item.sources || []).forEach((source) => {
+          const sourceEl = document.createElement("source");
+          sourceEl.src = source.src;
+          if (source.type) sourceEl.type = source.type;
+          modalVideo.appendChild(sourceEl);
+        });
+        mediaWrap.appendChild(modalVideo);
+
+        modalMuteBtn = document.createElement("button");
+        modalMuteBtn.type = "button";
+        modalMuteBtn.className = "slideshow-modal__mute";
+        modalMuteBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleVideoMute(modalVideoId);
+          modalVideo.play().catch(() => {});
+        });
+        mediaWrap.appendChild(modalMuteBtn);
+      } else {
+        const image = document.createElement("img");
+        image.className = "slideshow-modal__media";
+        image.src = item.src;
+        image.alt = "Clementine photo";
+        mediaWrap.appendChild(image);
+      }
+
+      const closeButton = document.createElement("button");
+      closeButton.type = "button";
+      closeButton.className = "slideshow-modal__close";
+      closeButton.setAttribute("aria-label", "Close focused media view");
+      closeButton.innerHTML = "&times;";
+      closeButton.addEventListener("click", closeModal);
+      mediaWrap.appendChild(closeButton);
+
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal || event.target === mediaWrap) closeModal();
+      });
+
+      document.body.appendChild(modal);
+      document.body.classList.add("slideshow-modal-open");
+      syncMuteUi();
+      applyVideoAudio();
+      if (modalVideo) modalVideo.play().catch(() => {});
+      closeButton.focus();
+    }
+
     createNavButton("prev", "Previous photo", ICON_PREV, -1);
     createNavButton("next", "Next photo", ICON_NEXT, 1);
+    createPauseButton();
 
     slides.forEach((slide) => {
       slide.addEventListener("click", (event) => {
@@ -385,6 +535,10 @@
       offset = normalizeOffset(offset);
       applyTrackTransform();
       updateSpotlight();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal) closeModal();
     });
 
     // Wait for media so measurements are accurate
