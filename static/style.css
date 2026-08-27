@@ -251,13 +251,7 @@ h4 {
 }
 
 .terminal-section h2 {
-  margin-bottom: 6px;
-  text-align: center;
-}
-
-.terminal-section__intro {
-  margin: 0 0 16px;
-  color: var(--text-muted);
+  margin-bottom: 16px;
   text-align: center;
 }
 
@@ -557,23 +551,25 @@ body.slideshow-modal-open {
 
 .slideshow-modal__media-wrap {
   position: relative;
-  width: min(1100px, 90vw);
-  height: min(760px, 84vh);
-  display: grid;
-  place-items: center;
+  width: fit-content;
+  height: fit-content;
+  max-width: 90vw;
+  max-height: 86vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 18px;
   border-radius: 14px;
   background: #111;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
 }
 
 .slideshow-modal__media {
   display: block;
   width: auto;
   height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  max-width: calc(90vw - 36px);
+  max-height: calc(86vh - 36px);
   object-fit: contain;
 }
 

@@ -445,6 +445,7 @@
       paused = true;
       clearTimeout(resumeTimer);
       modalTrigger = trigger;
+      let focusedMedia = null;
 
       modal = document.createElement("div");
       modal.className = "slideshow-modal";
@@ -467,6 +468,7 @@
         modalVideo.playsInline = true;
         modalVideo.autoplay = true;
         modalVideo.muted = true;
+        focusedMedia = modalVideo;
         (item.sources || []).forEach((source) => {
           const sourceEl = document.createElement("source");
           sourceEl.src = source.src;
@@ -489,6 +491,7 @@
         image.className = "slideshow-modal__media";
         image.src = item.src;
         image.alt = "Clementine photo";
+        focusedMedia = image;
         mediaWrap.appendChild(image);
       }
 
@@ -501,7 +504,34 @@
       mediaWrap.appendChild(closeButton);
 
       modal.addEventListener("click", (event) => {
-        if (event.target === modal || event.target === mediaWrap) closeModal();
+        if (event.target === modal || event.target === mediaWrap) {
+          closeModal();
+          return;
+        }
+
+        if (event.target !== focusedMedia) return;
+        const rect = focusedMedia.getBoundingClientRect();
+        const naturalWidth =
+          focusedMedia.naturalWidth || focusedMedia.videoWidth || 0;
+        const naturalHeight =
+          focusedMedia.naturalHeight || focusedMedia.videoHeight || 0;
+        if (!naturalWidth || !naturalHeight) return;
+
+        const scale = Math.min(
+          rect.width / naturalWidth,
+          rect.height / naturalHeight
+        );
+        const visibleWidth = naturalWidth * scale;
+        const visibleHeight = naturalHeight * scale;
+        const visibleLeft = rect.left + (rect.width - visibleWidth) / 2;
+        const visibleTop = rect.top + (rect.height - visibleHeight) / 2;
+        const clickedOutside =
+          event.clientX < visibleLeft ||
+          event.clientX > visibleLeft + visibleWidth ||
+          event.clientY < visibleTop ||
+          event.clientY > visibleTop + visibleHeight;
+
+        if (clickedOutside) closeModal();
       });
 
       document.body.appendChild(modal);
