@@ -1,0 +1,15 @@
+{
+  "_comment": "Copy to config.json and add your IPs there. config.json is not committed. The website cannot change this list.",
+  "admin_allowed_ips": [
+    "127.0.0.1",
+    "::1"
+  ],
+  "trusted_proxies": [
+    "127.0.0.1",
+    "::1"
+  ],
+  "log_dir": "logs",
+  "log_retention_days": 180,
+  "log_max_bytes": 8388608,
+  "log_max_total_bytes": 134217728
+}
