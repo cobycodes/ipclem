@@ -1,14 +1,19 @@
-from flask import Flask, request, render_template, Response, url_for
+from flask import Flask, make_response, request, render_template, Response, url_for
 import ipaddress
 import ipinfo
 import random
+import re
+import sys
 from datetime import datetime
 from pathlib import Path
+
+from visitlog import VisitLog, ip_allowed, request_ip_for_admin
 
 app = Flask(__name__)
 # Without this, Jinja keeps the first compiled copy of each template while DEBUG is off,
 # so HTML edits do not show until the process restarts.
 app.config["TEMPLATES_AUTO_RELOAD"] = True
+visit_log = VisitLog(Path(app.root_path))
 
 # -----------------------------
 #  SETTINGS – OFFLINE IPINFO DB
@@ -131,11 +136,65 @@ def extract_public_ip(headers, remote_addr):
     # If all else fails
     return remote_addr
 
+
+# curl, wget, HTTPie, and libcurl. A browser User-Agent does not match.
+_CLI_CLIENT = re.compile(
+    r"(?:^|[^a-z0-9])(?:curl|wget|httpie|libcurl)(?:/|\s|$)",
+    re.IGNORECASE,
+)
+
+
+def client_wants_plain_ip(headers):
+    """Return the plain IP instead of the homepage.
+
+    This has to be the first response body. Sending the client to /curl with a
+    redirect still requires curl -L, which is the case we are avoiding.
+    """
+    if _CLI_CLIENT.search(headers.get("User-Agent") or ""):
+        return True
+    accept = (headers.get("Accept") or "").lower()
+    return "text/plain" in accept and "text/html" not in accept
+
+
+def record_presented_visit(path, client_ip, geo=None, user_agent=""):
+    """Store the details this response is about to show. Failures stay off the page."""
+    if request.method != "GET":
+        return
+    details = geo or {}
+    try:
+        visit_log.record(
+            {
+                "path": path,
+                "ip": client_ip,
+                "city": details.get("city", ""),
+                "region": details.get("region", ""),
+                "country": details.get("country", ""),
+                "isp": details.get("isp_name", ""),
+                "asn": details.get("asn", ""),
+                "timezone": details.get("timezone", ""),
+                "loc": details.get("loc", ""),
+                "user_agent": user_agent,
+            }
+        )
+    except Exception as exc:
+        print("Visit log failed:", exc, file=sys.stderr)
+
+
+def _private_page(body, status=200):
+    response = make_response(body)
+    response.status_code = status
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noindex"
+    return response
+
 # -----------------------------
 #  ROUTES
 # -----------------------------
 @app.route("/")
 def index():
+    if client_wants_plain_ip(request.headers):
+        return plain_ip()
+
     # Get the real client IP
     client_ip = extract_public_ip(request.headers, request.remote_addr)
 
@@ -173,6 +232,7 @@ def index():
 
     # Browser info
     user_agent = request.headers.get("User-Agent", "Unknown")
+    record_presented_visit("/", client_ip, geo, user_agent)
 
     return render_template(
         "index.html",
@@ -188,6 +248,11 @@ def index():
 def plain_ip():
     """Plain-text client IP for scripts and `curl` (ifconfig.io-style)."""
     client_ip = extract_public_ip(request.headers, request.remote_addr)
+    record_presented_visit(
+        "/curl",
+        client_ip,
+        user_agent=request.headers.get("User-Agent", ""),
+    )
     return Response(
         f"{client_ip}\n",
         mimetype="text/plain",
@@ -198,6 +263,33 @@ def plain_ip():
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html", current_year=datetime.now().year)
+
+
+@app.route("/admin")
+def admin():
+    settings = visit_log.settings()
+    client_ip = request_ip_for_admin(
+        request.headers,
+        request.remote_addr,
+        settings["trusted_proxies"],
+    )
+    year = datetime.now().year
+    if not settings["config_ok"] or not ip_allowed(client_ip, settings["admin_allowed_ips"]):
+        page = render_template(
+            "forbidden.html",
+            client_ip=client_ip,
+            config_ok=settings["config_ok"],
+            current_year=year,
+        )
+        return _private_page(page, status=403)
+
+    page = render_template(
+        "admin.html",
+        stats=visit_log.summary(),
+        client_ip=client_ip,
+        current_year=year,
+    )
+    return _private_page(page)
 
 # -----------------------------
 #  MAIN

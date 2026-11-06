@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>IP Clem - Not allowed</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <link rel="stylesheet" href="/static/style.css">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("ipclem-theme");
+        if (t !== "light" && t !== "dark") {
+          t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  {% include "includes/topbar.html" %}
+
+  <div class="container">
+    <h1>Not allowed</h1>
+    <div class="info-box">
+      <p>
+        The admin page only accepts IP addresses listed in the server config file.
+        This request was seen as <strong>{{ client_ip }}</strong>.
+      </p>
+      {% if not config_ok %}
+      <p><code>config.json</code> could not be read, so admin access is closed until that file is valid JSON.</p>
+      {% endif %}
+      <p><a href="{{ url_for('index') }}">Back to IP Clem</a></p>
+    </div>
+  </div>
+
+  <footer>
+    <p class="footer-copyright">
+      <img src="{{ url_for('static', filename='favicon.ico') }}" alt="" class="favicon-link">
+      &copy; {{ current_year }} IP Clem
+    </p>
+  </footer>
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</body>
+</html>

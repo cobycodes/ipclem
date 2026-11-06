@@ -19,84 +19,7 @@
   </script>
 </head>
 <body>
-  <header class="topnav" role="banner">
-    <a class="topnav__brand" href="{{ url_for('index') }}" aria-label="IP Clem home">
-      <img src="{{ url_for('static', filename='favicon.ico') }}" alt="" width="28" height="28">
-      <span class="topnav__brand-text">IP Clem</span>
-    </a>
-
-    <nav class="topnav__links" aria-label="Project links">
-      <a
-        class="topnav__btn"
-        href="https://github.com/cobycodes/ipclem"
-        target="_blank"
-        rel="noopener"
-      >
-        <svg class="topnav__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path fill="currentColor" d="M12 2C6.48 2 2 6.58 2 12.26c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.37-3.37-1.37-.46-1.2-1.12-1.52-1.12-1.52-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.58 2.36 1.12 2.94.86.09-.67.35-1.12.63-1.38-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.3 9.3 0 0112 6.8c.85 0 1.7.12 2.5.34 1.9-1.32 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9 0 1.38-.01 2.49-.01 2.83 0 .26.18.58.69.48A10.27 10.27 0 0022 12.26C22 6.58 17.52 2 12 2z"/>
-        </svg>
-        <span>GitHub</span>
-      </a>
-
-      <a
-        class="topnav__btn"
-        href="https://ipinfo.io/"
-        target="_blank"
-        rel="noopener"
-      >
-        <img
-          class="topnav__icon topnav__icon--ipinfo"
-          src="{{ url_for('static', filename='brand/ipinfo.svg') }}"
-          alt=""
-          width="18"
-          height="22"
-        >
-        <span>IPinfo</span>
-      </a>
-
-      <a
-        class="topnav__btn"
-        href="https://leafletjs.com/"
-        target="_blank"
-        rel="noopener"
-      >
-        <img
-            class="topnav__icon topnav__icon--leaflet"
-            src="{{ url_for('static', filename='brand/leaflet.svg') }}"
-            alt=""
-            width="18"
-            height="18"
-          >
-        <span>Leaflet</span>
-      </a>
-    </nav>
-
-    <div class="theme-switch-wrap">
-      <span class="theme-switch__label theme-switch__label--dark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" focusable="false">
-          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 14.5A8.5 8.5 0 1110.5 3a7 7 0 0010.5 11.5z"/>
-        </svg>
-      </span>
-      <button
-        id="themeToggle"
-        class="theme-switch"
-        type="button"
-        role="switch"
-        aria-checked="false"
-        aria-label="Color theme"
-      >
-        <span class="theme-switch__track">
-          <span class="theme-switch__knob"></span>
-        </span>
-      </button>
-      <span class="theme-switch__label theme-switch__label--light" aria-hidden="true">
-        <svg viewBox="0 0 24 24" focusable="false">
-          <circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/>
-          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2M12 19.5v2M4.7 4.7l1.4 1.4M17.9 17.9l1.4 1.4M2.5 12h2M19.5 12h2M4.7 19.3l1.4-1.4M17.9 6.1l1.4-1.4"/>
-        </svg>
-      </span>
-    </div>
-  </header>
+  {% include "includes/topbar.html" %}
 
   <div class="container">
     <h1>Privacy Policy</h1>
@@ -105,9 +28,11 @@
         This website is a personal learning project and is provided for educational and demonstration purposes only.
       </p>
       <ul>
-        <li>No personal data is collected, stored, or shared by this site.</li>
-        <li>Any IP address or geolocation information displayed is retrieved from third-party services and may be inaccurate, incomplete, or outdated.</li>
+        <li>The homepage and the plain-text IP endpoint store a private log of that visit: the time, the IP address, the approximate location and ISP details shown on the page, and the browser user agent.</li>
+        <li>Those logs are kept for at most 180 days, then deleted. They are for the site operator only and are not sold or shared.</li>
+        <li>Approximate location comes from an offline IPinfo database on this server. It may be inaccurate, incomplete, or outdated.</li>
         <li>The information presented here should not be relied upon for security, business, legal, or any other critical purposes.</li>
+        <li>A light or dark theme choice can be saved in this browser only. It is not sent to the server.</li>
       </ul>
       <p>
         By using this website, you acknowledge and agree that it is offered “as-is,” without warranties of any kind, and solely as an educational exercise.
@@ -117,8 +42,13 @@
     </div>
   </div>
   <footer>
-    <p>
-      <img src="{{ url_for('static', filename='favicon.ico') }}" alt="favicon" class="favicon-link">
+    <nav class="footer-links" aria-label="Project and technology links">
+      <a href="https://github.com/cobycodes/ipclem" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://ipinfo.io/" target="_blank" rel="noopener">IPinfo</a>
+      <a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a>
+    </nav>
+    <p class="footer-copyright">
+      <img src="{{ url_for('static', filename='favicon.ico') }}" alt="" class="favicon-link">
       &copy; {{ current_year }} IP Clem
     </p>
   </footer>
