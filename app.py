@@ -113,6 +113,17 @@ def extract_public_ip(headers, remote_addr):
     """
     Returns the **public** client IP, ignoring internal/private ones.
     """
+    # Cloudflare overwrites this with the visitor. Prefer it so the address
+    # on the page matches the address checked by /admin.
+    cf_ip = (headers.get("CF-Connecting-IP") or "").split(",")[0].strip()
+    if cf_ip:
+        try:
+            ip_obj = ipaddress.ip_address(cf_ip)
+            if not ip_obj.is_private:
+                return str(ip_obj)
+        except ValueError:
+            pass
+
     # Check X-Forwarded-For first (Nginx)
     xff = headers.get("X-Forwarded-For", "")
     if xff:
