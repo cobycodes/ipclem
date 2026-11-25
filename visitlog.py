@@ -27,6 +27,32 @@ CHART_DAYS = 14
 MAINTENANCE_EVERY_SECONDS = 3600
 _VISIT_FILE = re.compile(r"^visits-(\d{4}-\d{2}-\d{2})(?:\.(\d+))?\.jsonl$")
 
+# https://www.cloudflare.com/ips/
+CLOUDFLARE_NETWORKS = [
+    "173.245.48.0/20",
+    "103.21.244.0/22",
+    "103.22.200.0/22",
+    "103.31.4.0/22",
+    "141.101.64.0/18",
+    "108.162.192.0/18",
+    "190.93.240.0/20",
+    "188.114.96.0/20",
+    "197.234.240.0/22",
+    "198.41.128.0/17",
+    "162.158.0.0/15",
+    "104.16.0.0/13",
+    "104.24.0.0/14",
+    "172.64.0.0/13",
+    "131.0.72.0/22",
+    "2400:cb00::/32",
+    "2606:4700::/32",
+    "2803:f800::/32",
+    "2405:b500::/32",
+    "2405:8100::/32",
+    "2a06:98c0::/29",
+    "2c0f:f248::/32",
+]
+
 _config_warning = None
 
 
@@ -213,16 +239,25 @@ def request_ip_for_admin(headers, remote_addr, trusted_proxies):
 
     Forwarded headers count only when the direct peer is this machine or a
     configured proxy. A public client cannot grant itself access by sending
-    X-Forwarded-For. The last address in the header wins, which is the one
-    nginx appends, and X-Real-IP is preferred because the sample config sets
-    it from $remote_addr.
+    X-Forwarded-For.
+
+    The proxy's peer comes from X-Real-IP, or else the last X-Forwarded-For
+    address (the one a proxy appends). Behind Cloudflare that peer is a
+    Cloudflare edge, and the visitor is in CF-Connecting-IP. That header is
+    used only when the peer really is Cloudflare, because anyone who reaches
+    the origin directly can send it.
     """
     peer = _parse_ip(remote_addr)
     if _is_trusted_peer(remote_addr, trusted_proxies):
-        for key in ("X-Real-IP", "X-Forwarded-For"):
-            forwarded = _last_valid_ip(headers.get(key, ""))
-            if forwarded is not None:
-                return forwarded.compressed
+        proxy_peer = _last_valid_ip(headers.get("X-Real-IP", ""))
+        if proxy_peer is None:
+            proxy_peer = _last_valid_ip(headers.get("X-Forwarded-For", ""))
+        if proxy_peer is not None:
+            if ip_allowed(proxy_peer.compressed, CLOUDFLARE_NETWORKS):
+                visitor = _parse_ip(str(headers.get("CF-Connecting-IP") or "").split(",")[0])
+                if visitor is not None:
+                    return visitor.compressed
+            return proxy_peer.compressed
     if peer is not None:
         return peer.compressed
     return "Unknown"

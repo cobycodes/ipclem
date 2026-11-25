@@ -1,6 +1,6 @@
 # [IP Clem](https://ipclem.com)
 
-`clementine@server:~$ curl ipclem.com`
+`clementine@server:~$ curl https://ipclem.com`
 
 **IP Clem** is a simple Python web app that shows a visitor’s **public IP address**, approximate geolocation, ISP info, and related details. It includes an interactive map, a rolling photo/video slideshow, light/dark theming, and a privacy notice. This project is intended **for educational purposes only**.
 
@@ -10,7 +10,7 @@
 
 ## Features
 
-- **Plain-text IP for the command line:** `curl ipclem.com` prints only the public IP. The app treats `curl`, `wget`, and HTTPie as command-line clients and answers `/` with the same `text/plain` body as `/curl`. Browsers still get the full page. The full Cloudflare and origin setup is in [Cloudflare](#cloudflare).
+- **Plain-text IP for the command line:** `curl https://ipclem.com` prints only the public IP. The app treats `curl`, `wget`, and HTTPie as command-line clients and answers `/` with the same `text/plain` body as `/curl`. Browsers still get the full page. Bare `curl ipclem.com` needs the extra origin port 80 steps in [Cloudflare](#cloudflare); without them Cloudflare returns error 522.
 - Large, clear display of the visitor’s **public IP** (private/local addresses filtered out).
 - Shows **approximate location** (city, region, country), **coordinates**, **timezone**, and **ISP / ASN** info when available from the offline database.
 - Interactive **[Leaflet](https://leafletjs.com/)** map of the approximate IP location.
@@ -25,20 +25,20 @@
 
 ## Plain-text IP (`/curl`)
 
-`/curl` responds with **`text/plain`**: your **public** IP and a newline. The homepage does the same when the client is a command-line tool, so this prints only the address, with no `-L`:
+`/curl` responds with **`text/plain`**: your **public** IP and a newline. The homepage does the same when the client is a command-line tool. This prints only the address, on port 443, with no `-L`:
 
 ```bash
-curl ipclem.com
+curl https://ipclem.com
 ```
 
-`curl https://ipclem.com` and `curl https://ipclem.com/curl` do the same thing. Detection uses the `User-Agent` (`curl`, `wget`, `httpie`, `libcurl`). A request that asks for `text/plain` and does not ask for `text/html` gets the same body. Browsers still receive the page. The answer is status **200** on `/` itself. There is no redirect.
+`curl https://ipclem.com/curl` does the same thing. Detection uses the `User-Agent` (`curl`, `wget`, `httpie`, `libcurl`). A request that asks for `text/plain` and does not ask for `text/html` gets the same body. Browsers still receive the page. The answer is status **200** on `/` itself. There is no redirect.
 
-`curl ipclem.com` connects to Cloudflare on port 80. With **Full** or **Full (strict)**, Cloudflare then connects to the origin on port 80 as well. Allow that port only from [Cloudflare’s IP ranges](https://www.cloudflare.com/ips/). Details are in [Cloudflare](#cloudflare).
+`curl ipclem.com` (no `https://`) connects to Cloudflare on port 80. With **Full** or **Full (strict)**, Cloudflare then connects to the origin on port 80. If that port is closed, Cloudflare returns **522** and the command prints an error instead of the IP. The steps to open it only to [Cloudflare’s IP ranges](https://www.cloudflare.com/ips/) are in [Cloudflare](#cloudflare). Until those are in place, use the `https://` command above.
 
 ### Linux or macOS (Terminal)
 
 ```bash
-curl ipclem.com
+curl https://ipclem.com
 ```
 
 Local development (after [running the app locally](#run-locally-windows--powershell)):
@@ -52,7 +52,7 @@ curl http://127.0.0.1:5000/
 **PowerShell:** `curl` is often an alias for `Invoke-WebRequest`. Call the real client:
 
 ```powershell
-curl.exe ipclem.com
+curl.exe https://ipclem.com
 ```
 
 For local development:
@@ -64,7 +64,7 @@ curl.exe http://127.0.0.1:5000/
 **Command Prompt (`cmd.exe`):**
 
 ```cmd
-curl ipclem.com
+curl https://ipclem.com
 ```
 
 You should see only the IP, then the prompt.
@@ -443,7 +443,7 @@ What you want:
 
 A browser opening `https://ipclem.com` still shows the full page. A browser opening `http://ipclem.com` also shows the page, over HTTP, because Always Use HTTPS is off. That matches ifconfig.io.
 
-On Windows, `curl` in PowerShell is often `Invoke-WebRequest`. Use `curl.exe ipclem.com`.
+On Windows, `curl` in PowerShell is often `Invoke-WebRequest`. Use `curl.exe https://ipclem.com`. Bare `curl.exe ipclem.com` is the port 80 check below, and it returns 522 until that port accepts Cloudflare.
 
 ### When the result is wrong
 
@@ -454,6 +454,7 @@ On Windows, `curl` in PowerShell is often `Invoke-WebRequest`. Use `curl.exe ipc
 | Connection hangs or “couldn’t connect” to the **origin** address | The DNS record is grey-clouded. Turn the proxy back on. |
 | HTML in the terminal | The client is not curl, wget, or HTTPie. PowerShell’s `curl` alias does this. Use `curl.exe`. |
 | A Cloudflare address as the “IP” | `X-Forwarded-For` is not being passed. Keep the `proxy_set_header` lines in both the port 80 and port 443 servers. |
+| `/admin` shows a `104.x` address while the homepage shows your home IP | The app is older than the `CF-Connecting-IP` check, or `CLOUDFLARE_NETWORKS` in `visitlog.py` is missing that range. Put the homepage address in `admin_allowed_ips`, not the `104.x` one. |
 
 ### Enterprise only: leave origin port 80 closed
 
@@ -568,6 +569,8 @@ On a direct connection the allowlist uses the peer address and ignores `X-Forwar
 ```nginx
 proxy_set_header X-Real-IP $remote_addr;
 ```
+
+Behind Cloudflare, `X-Real-IP` is a Cloudflare edge address such as `104.23.x.x`, not you. When it falls inside [Cloudflare’s IP ranges](https://www.cloudflare.com/ips/), the app uses `CF-Connecting-IP` instead, which is the same address the homepage shows. A request that reaches the origin without going through Cloudflare cannot use that header to get in. The ranges are listed in `CLOUDFLARE_NETWORKS` in `visitlog.py`. Update them if Cloudflare publishes new ones.
 
 `trusted_proxies` means “this host is a reverse proxy,” not “this host may open admin.” If nginx runs on another machine, add that machine’s address there. Your home IP belongs in `admin_allowed_ips`.
 
